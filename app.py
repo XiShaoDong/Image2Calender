@@ -14,6 +14,7 @@ from ics_builder import build_ics
 
 app = FastAPI(title="poster2ics")
 STATIC_DIR = Path(__file__).parent / "static"
+_last_events: list[Event] = []
 
 
 class EventPayload(BaseModel):
@@ -89,6 +90,7 @@ async def api_ocr(files: list[UploadFile] = File(...)):
 
 @app.post("/api/ics")
 def api_ics(payloads: list[EventPayload]):
+    global _last_events
     events = []
     for p in payloads:
         ev = Event(
@@ -100,9 +102,18 @@ def api_ics(payloads: list[EventPayload]):
         )
         if ev.start:
             events.append(ev)
-    content = build_ics(events)
+    _last_events = events
+    return _ics_response(events)
+
+
+@app.get("/api/ics")
+def api_ics_get():
+    return _ics_response(_last_events)
+
+
+def _ics_response(events: list[Event]) -> Response:
     return Response(
-        content=content,
+        content=build_ics(events),
         media_type="text/calendar",
         headers={"Content-Disposition": "attachment; filename=events.ics"},
     )

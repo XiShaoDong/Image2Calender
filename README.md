@@ -28,7 +28,34 @@ uvicorn app:app --port 8000
 2. AirDrop/微信发送到 iPhone
 3. iPhone 点开 events.ics → 添加全部 → 已导入苹果日历
 
-（同一 WiFi 下手机也可直接访问 http://电脑IP:8000）
+### 一键直通（推荐，手机浏览器直接操作）
+
+1. iPhone 浏览器（任意浏览器均可）打开本服务地址
+2. 上传图片 → 预览确认 → 点「生成日历文件」→ 点绿色「在 iPhone 上导入到日历」
+3. iOS 直接弹出日历导入界面 → 选择要分配的日历 → 添加全部
+
+本地部署时 iPhone 需与电脑同一 WiFi；云端部署（Render）则随时随地可用。
+
+## 部署到 Render（免费）
+
+1. 将代码推送到 GitHub（见下）
+2. 打开 https://render.com → New + → Web Service → 连接 GitHub 仓库
+3. 构建命令：`pip install -r requirements.txt`
+4. 启动命令：`uvicorn app:app --host 0.0.0.0 --port $PORT`
+5. 环境变量：添加 `OCRSPACE_KEY`（必填）、`GEMINI_KEY`（选填）
+6. 部署完成后访问 `https://<服务名>.onrender.com`
+
+也可用仓库内的 `render.yaml` 一键部署（Blueprint）。
+
+> 注意：云端部署时网页保存的 key 存在临时磁盘，重启会丢失，请务必在 Render 控制台用环境变量配置两个 key。
+
+## 推送到 GitHub
+
+```bash
+cd ~/dev/opencode/poster2ics
+git remote add origin git@github.com:你的用户名/poster2ics.git
+git push -u origin main
+```
 
 ## 测试
 

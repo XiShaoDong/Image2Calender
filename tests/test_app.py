@@ -47,6 +47,25 @@ def test_ics_endpoint_skips_missing_dates():
     assert "DTSTART" not in resp.text
 
 
+def test_ics_get_serves_last_events():
+    client = TestClient(app)
+    client.post("/api/ics", json=[_event_payload()])
+    resp = client.get("/api/ics")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/calendar")
+    assert "测试活动" in resp.text
+    assert "DTSTART;TZID=Asia/Shanghai:20260815T190000" in resp.text
+
+
+def test_ics_get_before_post_is_empty():
+    import app as app_mod
+    app_mod._last_events = []
+    client = TestClient(app)
+    resp = client.get("/api/ics")
+    assert resp.status_code == 200
+    assert "BEGIN:VEVENT" not in resp.text
+
+
 def test_config_get():
     client = TestClient(app)
     resp = client.get("/api/config")
