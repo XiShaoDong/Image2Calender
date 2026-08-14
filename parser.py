@@ -38,11 +38,17 @@ def _collect_dates(text: str) -> list[date]:
     )
     for m in re.finditer(en_pattern, text):
         if m.group(1) and m.group(2) and m.group(3):
-            dates.append(date(int(m.group(3)), MONTHS_EN[m.group(1).lower()[:3]], int(m.group(2))))
+            mon = MONTHS_EN.get(m.group(1).lower()[:3])
+            if mon:
+                dates.append(date(int(m.group(3)), mon, int(m.group(2))))
         elif m.group(4) and m.group(5) and m.group(6):
-            dates.append(date(int(m.group(6)), MONTHS_EN[m.group(5).lower()[:3]], int(m.group(4))))
+            mon = MONTHS_EN.get(m.group(5).lower()[:3])
+            if mon:
+                dates.append(date(int(m.group(6)), mon, int(m.group(4))))
         elif m.group(7) and m.group(8):
-            dates.append(date(2000, MONTHS_EN[m.group(7).lower()[:3]], int(m.group(8))))
+            mon = MONTHS_EN.get(m.group(7).lower()[:3])
+            if mon:
+                dates.append(date(2000, mon, int(m.group(8))))
     return dates
 
 

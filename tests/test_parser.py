@@ -201,3 +201,15 @@ def test_missing_time_uses_midday_default():
     ev = parse_event("义卖活动 8月15日", base_date=datetime(2026, 7, 1))
     assert ev.start == datetime(2026, 8, 15, 0, 0)
     assert ev.end == datetime(2026, 8, 15, 2, 0)
+
+
+def test_non_month_word_with_number_ignored():
+    base = date(2026, 7, 1)
+    d, warns = extract_date("Room 15\nLocation 200\nAug 20 开始", base)
+    assert d == date(2026, 8, 20)
+
+
+def test_location_line_with_number_does_not_crash():
+    ev = parse_event("Live Show\nVenue: loc 200\nAug 15 2026 19:00", base_date=datetime(2026, 7, 1))
+    assert ev.start == datetime(2026, 8, 15, 19, 0)
+    assert ev.location == "loc 200"
