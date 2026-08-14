@@ -84,3 +84,61 @@ def test_multiple_dates_warns():
 
 def test_no_date_returns_none():
     assert extract_date("欢迎来到现场", date(2026, 7, 1)) is None
+
+
+from datetime import time
+
+from parser import extract_time
+
+
+def test_24h_time():
+    assert extract_time("19:00 开始") == (time(19, 0), None)
+
+
+def test_24h_range():
+    start, end = extract_time("19:00-21:00")
+    assert start == time(19, 0) and end == time(21, 0)
+
+
+def test_24h_range_tilde():
+    start, end = extract_time("19:00~21:00")
+    assert start == time(19, 0) and end == time(21, 0)
+
+
+def test_pm_format():
+    start, _ = extract_time("7:00PM")
+    assert start == time(19, 0)
+
+
+def test_am_format_lower():
+    start, _ = extract_time("9:30am")
+    assert start == time(9, 30)
+
+
+def test_chinese_period_evening():
+    start, _ = extract_time("晚上7点")
+    assert start == time(19, 0)
+
+
+def test_chinese_period_afternoon():
+    start, _ = extract_time("下午3点半")
+    assert start == time(15, 30)
+
+
+def test_chinese_period_morning():
+    start, _ = extract_time("上午9点30分")
+    assert start == time(9, 30)
+
+
+def test_chinese_period_noon():
+    start, _ = extract_time("中午12点")
+    assert start == time(12, 0)
+
+
+def test_chinese_midnight():
+    start, _ = extract_time("凌晨1点")
+    assert start == time(1, 0)
+
+
+def test_no_time_returns_none():
+    assert extract_time("欢迎来到现场") is None

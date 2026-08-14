@@ -102,3 +102,38 @@ def extract_date(text: str, base_date: date) -> tuple[date, list[str]] | None:
     if len(candidates) > 1:
         warnings.append(f"识别到多个候选日期，已取第一个: {[str(c) for c in candidates]}")
     return result, warnings
+
+
+from datetime import time
+
+_PERIODS = {"凌晨": 0, "上午": 0, "早上": 0, "中午": 12, "下午": 12, "晚上": 12}
+
+
+def _hour_of_period(period: str, hour: int) -> int:
+    if hour == 12:
+        return 12
+    return hour + (_PERIODS.get(period, 0) if period else 0)
+
+
+def extract_time(text: str) -> tuple[time, time | None] | None:
+    import re
+    m = re.search(r"(\d{1,2}):(\d{2})\s*[-~—]\s*(\d{1,2}):(\d{2})", text)
+    if m:
+        return time(int(m.group(1)), int(m.group(2))), time(int(m.group(3)), int(m.group(4)))
+    m = re.search(r"(?<!\d)(\d{1,2}):(\d{2})\s*(?:am|pm)?(?!\d)", text, re.IGNORECASE)
+    if m:
+        hour, minute = int(m.group(1)), int(m.group(2))
+        suffix = re.search(r"(\d{1,2}):(\d{2})\s*(am|pm)", text, re.IGNORECASE)
+        if suffix and suffix.group(3).lower() == "pm" and hour < 12:
+            hour += 12
+        if suffix and suffix.group(3).lower() == "am" and hour == 12:
+            hour = 0
+        return time(hour, minute), None
+    m = re.search(r"(\d{1,2})\s*(?:点|时)\s*(?:半|(\d{1,2})\s*分)?", text)
+    if m:
+        period_match = re.search(r"(凌晨|早上|上午|中午|下午|晚上)\s*(\d{1,2})\s*(?:点|时)", text)
+        period = period_match.group(1) if period_match else ""
+        hour = int(m.group(1))
+        minute = int(m.group(2)) if m.group(2) else (30 if "半" in m.group(0) else 0)
+        return time(_hour_of_period(period, hour), minute), None
+    return None
