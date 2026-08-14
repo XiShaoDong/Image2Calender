@@ -226,6 +226,12 @@ async function generateIcs() {
   statusEl.textContent = '已生成 events.ics。iPhone 上点绿色按钮可直接进入日历导入（需与电脑同一 WiFi，或使用云端部署地址）';
 }
 
+function goToSettings() {
+  const details = document.getElementById('settingsDetails');
+  if (!details.open) details.open = true;
+  details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function saveKey() {
   const body = {};
   const ocrKey = document.getElementById('keyInput').value.trim();
