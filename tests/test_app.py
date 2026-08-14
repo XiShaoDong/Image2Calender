@@ -225,7 +225,7 @@ def test_no_access_code_means_open(monkeypatch):
 def test_config_saves_public_mode_and_code(tmp_path, monkeypatch):
     monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
     client = TestClient(app)
-    resp = client.post("/api/config", json={"public_mode": True, "access_code": "abc-123"})
+    resp = client.post("/api/config", json={"public_mode": True, "access_code": "Image2Cal#2026"})
     assert resp.status_code == 200
     cfg = client.get("/api/config").json()
     assert cfg["public_mode"] is True
