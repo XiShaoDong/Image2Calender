@@ -1,1 +1,57 @@
-<html></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片导入苹果日历</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 860px; margin: 0 auto; padding: 16px; color: #222; }
+  h1 { font-size: 22px; }
+  #drop { border: 2px dashed #aaa; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; color: #666; }
+  #drop.dragover { border-color: #007aff; background: #eef6ff; }
+  .card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 12px; display: flex; gap: 12px; }
+  .card .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
+  .card .fields { flex: 1; }
+  .card label { display: block; font-size: 12px; color: #888; margin-top: 6px; }
+  .card input, .card textarea { width: 100%; box-sizing: border-box; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  .card textarea { height: 48px; }
+  .warn { color: #b8860b; font-size: 12px; }
+  .error { color: #d00; font-size: 12px; }
+  .card .pick { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  #actions { margin-top: 16px; text-align: center; }
+  button { background: #007aff; color: #fff; border: none; border-radius: 8px; padding: 10px 22px; font-size: 15px; cursor: pointer; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  details { margin-top: 16px; background: #f6f6f6; border-radius: 8px; padding: 10px; }
+  #status { margin-top: 12px; font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+<h1>图片导入苹果日历</h1>
+<details>
+  <summary>OCR API Key 设置</summary>
+  <p style="font-size:13px;color:#666">
+    免费注册获取 key：<a href="https://ocr.space/ocrapi#freeapi" target="_blank">ocr.space/ocrapi</a>（每月 25,000 次免费）。
+    不填可用环境变量 OCRSPACE_KEY。
+  </p>
+  <input id="keyInput" placeholder="粘贴 OCR.space API Key" style="padding:6px;width:60%">
+  <button id="keySave" type="button" onclick="saveKey()" style="padding:6px 12px;font-size:13px">保存</button>
+  <span id="keyStatus" style="font-size:12px;color:#666"></span>
+</details>
+<div id="drop">点击或拖拽图片到这里<br><small>支持多张，JPG/PNG，自动压缩</small></div>
+<input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+<div id="cards"></div>
+<div id="actions" style="display:none">
+  <button id="generate" onclick="generateIcs()" disabled>生成日历文件</button>
+</div>
+<div id="status"></div>
+<details>
+  <summary>手机导入步骤</summary>
+  <ol style="font-size:13px">
+    <li>在电脑上点击「生成日历文件」下载 events.ics</li>
+    <li>用 AirDrop 或微信发送到 iPhone</li>
+    <li>在 iPhone 上点开 events.ics → 「添加全部」→ 已加入苹果日历</li>
+  </ol>
+</details>
+<script src="/static/app.js"></script>
+</body>
+</html>
