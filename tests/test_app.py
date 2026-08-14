@@ -17,6 +17,7 @@ def _event_payload():
         "end": "2026-08-15T21:00:00",
         "location": "人民广场",
         "description": "说明",
+        "timezone": "Asia/Shanghai",
     }
 
 

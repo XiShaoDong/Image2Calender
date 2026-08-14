@@ -3,8 +3,6 @@ from uuid import uuid4
 
 from parser import Event
 
-TZID = "Asia/Shanghai"
-
 
 def _dt(value: datetime) -> str:
     return value.strftime("%Y%m%dT%H%M%S")
@@ -16,7 +14,13 @@ def _fold(line: str) -> str:
     return line[:75] + "\r\n " + line[75:]
 
 
-def build_ics(events: list[Event]) -> str:
+def _dt_line(prop: str, value: datetime, tzid: str | None) -> str:
+    if tzid:
+        return f"{prop};TZID={tzid}:{_dt(value)}"
+    return f"{prop}:{_dt(value)}"
+
+
+def build_ics(events: list[Event], tzid: str | None = None) -> str:
     parts = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -27,9 +31,9 @@ def build_ics(events: list[Event]) -> str:
         parts.append("BEGIN:VEVENT")
         parts.append(f"UID:{uuid4()}@poster2ics")
         if ev.start:
-            parts.append(f"DTSTART;TZID={TZID}:{_dt(ev.start)}")
+            parts.append(_dt_line("DTSTART", ev.start, tzid))
         if ev.end:
-            parts.append(f"DTEND;TZID={TZID}:{_dt(ev.end)}")
+            parts.append(_dt_line("DTEND", ev.end, tzid))
         if ev.title:
             parts.append(_fold(f"SUMMARY:{ev.title}"))
         if ev.location:

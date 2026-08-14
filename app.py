@@ -29,6 +29,7 @@ from ics_builder import build_ics
 app = FastAPI(title="poster2ics")
 STATIC_DIR = Path(__file__).parent / "static"
 _last_events: list[Event] = []
+_last_tzid: str | None = None
 
 
 class EventPayload(BaseModel):
@@ -37,6 +38,7 @@ class EventPayload(BaseModel):
     end: str | None = None
     location: str = ""
     description: str = ""
+    timezone: str | None = None
 
 
 class ConfigPayload(BaseModel):
@@ -146,8 +148,9 @@ async def api_ocr(request: Request, files: list[UploadFile] = File(...)):
 @app.post("/api/ics")
 def api_ics(request: Request, payloads: list[EventPayload]):
     _require_access(request)
-    global _last_events
+    global _last_events, _last_tzid
     events = []
+    tzid = None
     for p in payloads:
         ev = Event(
             title=p.title,
@@ -158,14 +161,18 @@ def api_ics(request: Request, payloads: list[EventPayload]):
         )
         if ev.start:
             events.append(ev)
+        if p.timezone and not tzid:
+            tzid = p.timezone
     _last_events = events
-    return _ics_response(events)
+    _last_tzid = tzid
+    return _ics_response(events, tzid)
 
 
 @app.get("/api/ics")
-def api_ics_get(request: Request, e: str | None = None):
+def api_ics_get(request: Request, e: str | None = None, tz: str | None = None):
     _require_access(request)
     events = _last_events
+    tzid = tz or _last_tzid
     if e:
         try:
             payloads = json.loads(e)
@@ -180,16 +187,18 @@ def api_ics_get(request: Request, e: str | None = None):
                 )
                 if ev.start:
                     parsed.append(ev)
+                if not tzid and p.get("timezone"):
+                    tzid = str(p["timezone"])
             if parsed:
                 events = parsed
         except (json.JSONDecodeError, AttributeError, TypeError):
             pass
-    return _ics_response(events)
+    return _ics_response(events, tzid)
 
 
-def _ics_response(events: list[Event]) -> Response:
+def _ics_response(events: list[Event], tzid: str | None = None) -> Response:
     return Response(
-        content=build_ics(events),
+        content=build_ics(events, tzid=tzid),
         media_type="text/calendar",
         headers={"Content-Disposition": "attachment; filename=events.ics"},
     )

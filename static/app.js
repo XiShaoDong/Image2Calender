@@ -7,6 +7,7 @@ const generateBtn = document.getElementById('generate');
 let items = [];
 let accessCode = localStorage.getItem('poster2ics_code') || '';
 let adminPassword = localStorage.getItem('poster2ics_admin') || '';
+const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 
 async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
@@ -192,6 +193,7 @@ async function generateIcs() {
       end: end ? end + ':00' : null,
       location: val('f-loc'),
       description: val('f-desc'),
+      timezone: clientTimezone,
     });
   }
   if (!payload.length) return;
@@ -216,6 +218,7 @@ async function generateIcs() {
   }));
   const mobileBtn = document.getElementById('mobileImport');
   let url = '/api/ics?e=' + encodeURIComponent(JSON.stringify(mobileEvents));
+  if (clientTimezone) url += '&tz=' + encodeURIComponent(clientTimezone);
   if (accessCode) url += '&code=' + encodeURIComponent(accessCode);
   mobileBtn.href = url;
   mobileBtn.style.display = 'inline-block';
