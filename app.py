@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from config import (
     get_access_code,
+    get_admin_password,
     get_api_key,
     get_llm_key,
     get_public_mode,
@@ -68,6 +69,19 @@ def _validate_access_code(code: str) -> str | None:
 def _require_access(request: Request) -> None:
     if not _access_ok(request):
         raise HTTPException(403, "需要访问码才能使用此服务")
+
+
+def _admin_ok(request: Request) -> bool:
+    pw = get_admin_password(DEFAULT_CONFIG)
+    if not pw:
+        return True
+    supplied = request.headers.get("x-admin-password") or request.query_params.get("admin")
+    return bool(supplied) and hmac.compare_digest(supplied, pw)
+
+
+def _require_admin(request: Request) -> None:
+    if not _admin_ok(request):
+        raise HTTPException(403, "需要管理员密码")
 
 
 def _needs_llm(events: list[Event]) -> bool:
@@ -184,18 +198,20 @@ def _ics_response(events: list[Event]) -> Response:
 @app.get("/api/config")
 def api_config_get(request: Request):
     _require_access(request)
+    admin = _admin_ok(request)
     return {
         "has_key": bool(get_api_key(DEFAULT_CONFIG)),
-        "ocr_key": get_api_key(DEFAULT_CONFIG),
-        "llm_key": get_llm_key(DEFAULT_CONFIG),
+        "ocr_key": get_api_key(DEFAULT_CONFIG) if admin else None,
+        "llm_key": get_llm_key(DEFAULT_CONFIG) if admin else None,
         "public_mode": get_public_mode(DEFAULT_CONFIG),
         "access_code_set": bool(get_access_code(DEFAULT_CONFIG)),
+        "admin_required": bool(get_admin_password(DEFAULT_CONFIG)),
     }
 
 
 @app.post("/api/config")
 def api_config_set(request: Request, payload: ConfigPayload):
-    _require_access(request)
+    _require_admin(request)
     ok = True
     if payload.key is not None:
         ok = set_api_key(payload.key, DEFAULT_CONFIG) and ok

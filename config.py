@@ -72,3 +72,17 @@ def set_access_code(code: str, config_path: Path = DEFAULT_CONFIG) -> bool:
     data = _load(config_path)
     data["access_code"] = code
     return _save(config_path, data)
+
+
+def get_admin_password(config_path: Path = DEFAULT_CONFIG) -> str | None:
+    env_pw = os.environ.get("ADMIN_PASSWORD")
+    if env_pw:
+        return env_pw
+    pw = _load(config_path).get("admin_password")
+    return pw if pw else None
+
+
+def set_admin_password(pw: str, config_path: Path = DEFAULT_CONFIG) -> bool:
+    data = _load(config_path)
+    data["admin_password"] = pw
+    return _save(config_path, data)

@@ -247,3 +247,35 @@ def test_access_code_can_be_cleared(tmp_path, monkeypatch):
     client.post("/api/config", json={"access_code": ""})
     cfg = client.get("/api/config").json()
     assert cfg["access_code_set"] is False
+
+
+def test_admin_required_blocks_settings(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_admin_password", lambda *a, **k: "admin-1")
+    client = TestClient(app)
+    resp = client.post("/api/config", json={"public_mode": True})
+    assert resp.status_code == 403
+    resp = client.post("/api/config", json={"public_mode": True}, headers={"x-admin-password": "wrong"})
+    assert resp.status_code == 403
+    resp = client.post("/api/config", json={"public_mode": True}, headers={"x-admin-password": "admin-1"})
+    assert resp.status_code == 200
+
+
+def test_admin_required_gates_keys_in_get(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_admin_password", lambda *a, **k: "admin-1")
+    monkeypatch.setattr(app_mod, "get_api_key", lambda *a, **k: "ocr-secret")
+    client = TestClient(app)
+    cfg = client.get("/api/config").json()
+    assert cfg["admin_required"] is True
+    assert cfg["ocr_key"] is None
+    cfg = client.get("/api/config", headers={"x-admin-password": "admin-1"}).json()
+    assert cfg["ocr_key"] == "ocr-secret"
+
+
+def test_no_admin_password_settings_open(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_admin_password", lambda *a, **k: None)
+    client = TestClient(app)
+    resp = client.post("/api/config", json={"public_mode": True})
+    assert resp.status_code == 200

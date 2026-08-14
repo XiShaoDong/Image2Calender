@@ -6,15 +6,41 @@ const statusEl = document.getElementById('status');
 const generateBtn = document.getElementById('generate');
 let items = [];
 let accessCode = localStorage.getItem('poster2ics_code') || '';
+let adminPassword = localStorage.getItem('poster2ics_admin') || '';
 
 async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
   if (accessCode) headers.set('x-access-code', accessCode);
+  if (adminPassword) headers.set('x-admin-password', adminPassword);
   const resp = await fetch(url, { ...options, headers });
-  if (resp.status === 403) {
+  if (resp.status === 403 && !url.startsWith('/api/config')) {
     showAccessOverlay();
   }
   return resp;
+}
+
+function applySettingsVisibility(cfg) {
+  const adminRow = document.getElementById('adminRow');
+  const settingsBody = document.getElementById('settingsBody');
+  if (cfg.admin_required && !adminPassword) {
+    adminRow.style.display = 'block';
+    settingsBody.style.display = 'none';
+  } else {
+    adminRow.style.display = 'none';
+    settingsBody.style.display = 'block';
+  }
+}
+
+async function unlockAdmin() {
+  const pw = document.getElementById('adminInput').value.trim();
+  const err = document.getElementById('adminError');
+  if (!pw) { err.textContent = '请输入管理员密码'; return; }
+  const resp = await fetch('/api/config', { headers: { 'x-admin-password': pw } });
+  if (resp.status === 403) { err.textContent = '管理员密码错误'; return; }
+  err.textContent = '';
+  adminPassword = pw;
+  localStorage.setItem('poster2ics_admin', pw);
+  await loadKeys();
 }
 
 function showAccessOverlay() {
@@ -226,6 +252,7 @@ async function loadKeys() {
     if (resp.status === 403) { showAccessOverlay(); return; }
     if (!resp.ok) return;
     const cfg = await resp.json();
+    applySettingsVisibility(cfg);
     if (cfg.ocr_key) document.getElementById('keyInput').value = cfg.ocr_key;
     if (cfg.llm_key) document.getElementById('llmKeyInput').value = cfg.llm_key;
     document.getElementById('modeSelect').value = cfg.public_mode ? 'public' : 'private';

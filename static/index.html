@@ -38,6 +38,13 @@
 <h1>图片导入苹果日历</h1>
 <details>
   <summary>API Key 设置（保存一次，以后自动生效）</summary>
+  <div id="adminRow" style="display:none">
+    <p style="font-size:13px;color:#666">此服务由管理员密码保护，输入管理员密码后才能查看和修改设置</p>
+    <input id="adminInput" type="password" placeholder="管理员密码" style="padding:6px;width:60%">
+    <button type="button" onclick="unlockAdmin()" style="padding:6px 12px;font-size:13px">解锁设置</button>
+    <span id="adminError" style="font-size:12px;color:#d00"></span>
+  </div>
+  <div id="settingsBody">
   <p style="font-size:13px;color:#666">
     OCR key（必填）：<a href="https://ocr.space/ocrapi#freeapi" target="_blank">ocr.space/ocrapi</a> 免费注册（25,000 次/月）。<br>
     Gemini key（选填）：<a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> 免费获取（1500 次/天）。用于复杂海报的智能解析，不填则只用规则解析。
@@ -59,6 +66,7 @@
   </label>
   <button id="keySave" type="button" onclick="saveKey()" style="padding:6px 12px;font-size:13px">保存</button>
   <span id="keyStatus" style="font-size:12px;color:#666"></span>
+  </div>
 </details>
 <div id="drop">点击或拖拽图片到这里<br><small>支持多张，JPG/PNG，自动压缩</small></div>
 <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
