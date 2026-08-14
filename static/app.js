@@ -5,6 +5,41 @@ const actionsEl = document.getElementById('actions');
 const statusEl = document.getElementById('status');
 const generateBtn = document.getElementById('generate');
 let items = [];
+let accessCode = localStorage.getItem('poster2ics_code') || '';
+
+async function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (accessCode) headers.set('x-access-code', accessCode);
+  const resp = await fetch(url, { ...options, headers });
+  if (resp.status === 403) {
+    showAccessOverlay();
+  }
+  return resp;
+}
+
+function showAccessOverlay() {
+  document.getElementById('accessOverlay').style.display = 'block';
+}
+
+function hideAccessOverlay() {
+  document.getElementById('accessOverlay').style.display = 'none';
+}
+
+async function submitAccess() {
+  const code = document.getElementById('accessInput').value.trim();
+  const err = document.getElementById('accessError');
+  if (!code) { err.textContent = '请输入访问码'; return; }
+  accessCode = code;
+  localStorage.setItem('poster2ics_code', code);
+  const resp = await fetch('/api/config', { headers: { 'x-access-code': code } });
+  if (resp.status === 403) {
+    err.textContent = '访问码错误';
+    return;
+  }
+  err.textContent = '';
+  hideAccessOverlay();
+  await loadKeys();
+}
 
 drop.addEventListener('click', () => fileInput.click());
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
@@ -39,7 +74,7 @@ async function handleFiles(files) {
   }
   let resp;
   try {
-    resp = await fetch('/api/ocr', { method: 'POST', body: fd });
+    resp = await apiFetch('/api/ocr', { method: 'POST', body: fd });
   } catch (e) {
     statusEl.textContent = '请求失败：' + e.message;
     return;
@@ -134,7 +169,7 @@ async function generateIcs() {
     });
   }
   if (!payload.length) return;
-  const resp = await fetch('/api/ics', {
+  const resp = await apiFetch('/api/ics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -154,7 +189,9 @@ async function generateIcs() {
     description: (p.description || '').slice(0, 500),
   }));
   const mobileBtn = document.getElementById('mobileImport');
-  mobileBtn.href = '/api/ics?e=' + encodeURIComponent(JSON.stringify(mobileEvents));
+  let url = '/api/ics?e=' + encodeURIComponent(JSON.stringify(mobileEvents));
+  if (accessCode) url += '&code=' + encodeURIComponent(accessCode);
+  mobileBtn.href = url;
   mobileBtn.style.display = 'inline-block';
   statusEl.textContent = '已生成 events.ics。iPhone 上点绿色按钮可直接进入日历导入（需与电脑同一 WiFi，或使用云端部署地址）';
 }
@@ -163,10 +200,14 @@ async function saveKey() {
   const body = {};
   const ocrKey = document.getElementById('keyInput').value.trim();
   const llmKey = document.getElementById('llmKeyInput').value.trim();
+  const accessCodeInput = document.getElementById('accessCodeInput').value.trim();
+  const mode = document.getElementById('modeSelect').value;
   if (ocrKey) body.key = ocrKey;
   if (llmKey) body.llm_key = llmKey;
+  if (accessCodeInput) body.access_code = accessCodeInput;
+  body.public_mode = mode === 'public';
   if (!Object.keys(body).length) return;
-  const resp = await fetch('/api/config', {
+  const resp = await apiFetch('/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -180,11 +221,13 @@ async function saveKey() {
 
 async function loadKeys() {
   try {
-    const resp = await fetch('/api/config');
+    const resp = await apiFetch('/api/config');
+    if (resp.status === 403) { showAccessOverlay(); return; }
     if (!resp.ok) return;
     const cfg = await resp.json();
     if (cfg.ocr_key) document.getElementById('keyInput').value = cfg.ocr_key;
     if (cfg.llm_key) document.getElementById('llmKeyInput').value = cfg.llm_key;
+    document.getElementById('modeSelect').value = cfg.public_mode ? 'public' : 'private';
     if (cfg.ocr_key || cfg.llm_key) {
       document.getElementById('keyStatus').textContent = '已加载已保存的 Key';
     }

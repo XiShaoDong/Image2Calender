@@ -188,3 +188,45 @@ def test_config_post_saves_llm_key(tmp_path, monkeypatch):
     cfg = client.get("/api/config").json()
     assert cfg["llm_key"] == "gem-key"
     assert cfg["ocr_key"] is None
+
+
+def test_private_mode_blocks_without_code(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_access_code", lambda *a, **k: "secret-1")
+    monkeypatch.setattr(app_mod, "get_public_mode", lambda *a, **k: False)
+    client = TestClient(app)
+    assert client.get("/api/config").status_code == 403
+    assert client.get("/api/ics").status_code == 403
+    resp = client.get("/api/config", headers={"x-access-code": "wrong"})
+    assert resp.status_code == 403
+    resp = client.get("/api/config", headers={"x-access-code": "secret-1"})
+    assert resp.status_code == 200
+    resp = client.get("/api/ics?code=secret-1")
+    assert resp.status_code == 200
+
+
+def test_public_mode_allows_everyone(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_access_code", lambda *a, **k: "secret-1")
+    monkeypatch.setattr(app_mod, "get_public_mode", lambda *a, **k: True)
+    client = TestClient(app)
+    assert client.get("/api/config").status_code == 200
+    assert client.get("/api/ics").status_code == 200
+
+
+def test_no_access_code_means_open(monkeypatch):
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_access_code", lambda *a, **k: None)
+    monkeypatch.setattr(app_mod, "get_public_mode", lambda *a, **k: False)
+    client = TestClient(app)
+    assert client.get("/api/config").status_code == 200
+
+
+def test_config_saves_public_mode_and_code(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
+    client = TestClient(app)
+    resp = client.post("/api/config", json={"public_mode": True, "access_code": "abc-123"})
+    assert resp.status_code == 200
+    cfg = client.get("/api/config").json()
+    assert cfg["public_mode"] is True
+    assert cfg["access_code_set"] is True

@@ -26,6 +26,15 @@
 </style>
 </head>
 <body>
+<div id="accessOverlay" style="display:none;position:fixed;inset:0;background:#f5f5f7;z-index:99">
+  <div style="max-width:360px;margin:140px auto;text-align:center;padding:0 16px">
+    <h3 style="font-size:20px">此服务需要访问码</h3>
+    <p style="font-size:13px;color:#666">请输入管理员提供的访问码后使用</p>
+    <input id="accessInput" type="password" placeholder="访问码" style="padding:8px;width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:8px;font-size:15px">
+    <button onclick="submitAccess()" style="margin-top:12px;width:100%">进入</button>
+    <div id="accessError" style="color:#d00;font-size:12px;margin-top:8px"></div>
+  </div>
+</div>
 <h1>图片导入苹果日历</h1>
 <details>
   <summary>API Key 设置（保存一次，以后自动生效）</summary>
@@ -38,6 +47,15 @@
   </label>
   <label style="font-size:13px;display:block;margin-bottom:6px">Gemini Key（可选）
     <input id="llmKeyInput" placeholder="粘贴 Gemini API Key" style="padding:6px;width:100%;box-sizing:border-box">
+  </label>
+  <label style="font-size:13px;display:block;margin-bottom:6px">访问模式
+    <select id="modeSelect" style="padding:6px;width:100%;box-sizing:border-box">
+      <option value="private">私密（仅限知道访问码的人）</option>
+      <option value="public">公开（任何人可直接使用）</option>
+    </select>
+  </label>
+  <label style="font-size:13px;display:block;margin-bottom:6px">访问码（私密模式下访客需要输入）
+    <input id="accessCodeInput" placeholder="设置访问码，如 my-events-2026" style="padding:6px;width:100%;box-sizing:border-box">
   </label>
   <button id="keySave" type="button" onclick="saveKey()" style="padding:6px 12px;font-size:13px">保存</button>
   <span id="keyStatus" style="font-size:12px;color:#666"></span>

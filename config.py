@@ -46,3 +46,29 @@ def set_llm_key(key: str, config_path: Path = DEFAULT_CONFIG) -> bool:
     data = _load(config_path)
     data["llm_key"] = key
     return _save(config_path, data)
+
+
+def get_public_mode(config_path: Path = DEFAULT_CONFIG) -> bool:
+    if os.environ.get("PUBLIC_MODE") in ("1", "true", "True"):
+        return True
+    return bool(_load(config_path).get("public_mode", False))
+
+
+def set_public_mode(enabled: bool, config_path: Path = DEFAULT_CONFIG) -> bool:
+    data = _load(config_path)
+    data["public_mode"] = enabled
+    return _save(config_path, data)
+
+
+def get_access_code(config_path: Path = DEFAULT_CONFIG) -> str | None:
+    env_code = os.environ.get("ACCESS_CODE")
+    if env_code:
+        return env_code
+    code = _load(config_path).get("access_code")
+    return code if code else None
+
+
+def set_access_code(code: str, config_path: Path = DEFAULT_CONFIG) -> bool:
+    data = _load(config_path)
+    data["access_code"] = code
+    return _save(config_path, data)

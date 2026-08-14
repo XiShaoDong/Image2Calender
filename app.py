@@ -2,12 +2,22 @@ from datetime import datetime
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from config import get_api_key, get_llm_key, set_api_key, set_llm_key, DEFAULT_CONFIG
+from config import (
+    get_access_code,
+    get_api_key,
+    get_llm_key,
+    get_public_mode,
+    set_access_code,
+    set_api_key,
+    set_llm_key,
+    set_public_mode,
+    DEFAULT_CONFIG,
+)
 from llm import LlmUnavailableError, parse_with_llm
 from ocr import OcrApiError, OcrLimitError, ocr_image
 from parser import Event, parse_events
@@ -29,6 +39,21 @@ class EventPayload(BaseModel):
 class ConfigPayload(BaseModel):
     key: str | None = None
     llm_key: str | None = None
+    access_code: str | None = None
+    public_mode: bool | None = None
+
+
+def _access_ok(request: Request) -> bool:
+    code = get_access_code(DEFAULT_CONFIG)
+    if get_public_mode(DEFAULT_CONFIG) or not code:
+        return True
+    supplied = request.headers.get("x-access-code") or request.query_params.get("code")
+    return supplied == code
+
+
+def _require_access(request: Request) -> None:
+    if not _access_ok(request):
+        raise HTTPException(403, "需要访问码才能使用此服务")
 
 
 def _needs_llm(events: list[Event]) -> bool:
@@ -67,7 +92,8 @@ def index():
 
 
 @app.post("/api/ocr")
-async def api_ocr(files: list[UploadFile] = File(...)):
+async def api_ocr(request: Request, files: list[UploadFile] = File(...)):
+    _require_access(request)
     key = get_api_key(DEFAULT_CONFIG)
     if not key:
         raise HTTPException(400, "未设置 OCR API key，请在页面右上角设置或配置环境变量 OCRSPACE_KEY")
@@ -90,7 +116,8 @@ async def api_ocr(files: list[UploadFile] = File(...)):
 
 
 @app.post("/api/ics")
-def api_ics(payloads: list[EventPayload]):
+def api_ics(request: Request, payloads: list[EventPayload]):
+    _require_access(request)
     global _last_events
     events = []
     for p in payloads:
@@ -108,7 +135,8 @@ def api_ics(payloads: list[EventPayload]):
 
 
 @app.get("/api/ics")
-def api_ics_get(e: str | None = None):
+def api_ics_get(request: Request, e: str | None = None):
+    _require_access(request)
     events = _last_events
     if e:
         try:
@@ -140,21 +168,29 @@ def _ics_response(events: list[Event]) -> Response:
 
 
 @app.get("/api/config")
-def api_config_get():
+def api_config_get(request: Request):
+    _require_access(request)
     return {
         "has_key": bool(get_api_key(DEFAULT_CONFIG)),
         "ocr_key": get_api_key(DEFAULT_CONFIG),
         "llm_key": get_llm_key(DEFAULT_CONFIG),
+        "public_mode": get_public_mode(DEFAULT_CONFIG),
+        "access_code_set": bool(get_access_code(DEFAULT_CONFIG)),
     }
 
 
 @app.post("/api/config")
-def api_config_set(payload: ConfigPayload):
+def api_config_set(request: Request, payload: ConfigPayload):
+    _require_access(request)
     ok = True
     if payload.key is not None:
         ok = set_api_key(payload.key, DEFAULT_CONFIG) and ok
     if payload.llm_key is not None:
         ok = set_llm_key(payload.llm_key, DEFAULT_CONFIG) and ok
+    if payload.access_code is not None:
+        ok = set_access_code(payload.access_code, DEFAULT_CONFIG) and ok
+    if payload.public_mode is not None:
+        ok = set_public_mode(payload.public_mode, DEFAULT_CONFIG) and ok
     return {"ok": ok}
 
 
