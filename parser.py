@@ -137,3 +137,65 @@ def extract_time(text: str) -> tuple[time, time | None] | None:
         minute = int(m.group(2)) if m.group(2) else (30 if "半" in m.group(0) else 0)
         return time(_hour_of_period(period, hour), minute), None
     return None
+
+
+import re
+from datetime import datetime, timedelta
+
+_LOCATION_KEYWORDS = ("地点", "地址", "venue", "@")
+
+
+def _extract_title(text: str, lines: list[dict] | None) -> str:
+    if lines:
+        candidates = [l for l in lines if l.get("text") and not re.search(r"\d", l["text"])]
+        if candidates:
+            best = max(candidates, key=lambda l: l.get("height", 0))
+            return best["text"].strip()
+    for line in text.splitlines():
+        line = line.strip()
+        if line and not re.search(r"(\d{1,2}[:：]\d{2})|(\d+\s*月)|(月|日|号)", line):
+            return line
+    return text.strip().splitlines()[0].strip() if text.strip() else ""
+
+
+def _extract_location(text: str) -> str:
+    for line in text.splitlines():
+        line = line.strip()
+        if any(kw.lower() in line.lower() for kw in _LOCATION_KEYWORDS):
+            line = re.sub(r"^(地点|地址|venue)\s*[:：]\s*", "", line, flags=re.IGNORECASE)
+            line = line.lstrip("@").strip()
+            if line:
+                return line
+    return ""
+
+
+def parse_event(text: str, lines: list[dict] | None = None, base_date: datetime | None = None) -> Event:
+    if base_date is None:
+        base_date = datetime.now()
+    warnings: list[str] = []
+    start = end = None
+    date_info = extract_date(text, base_date.date())
+    if date_info:
+        d, date_warns = date_info
+        warnings.extend(date_warns)
+        time_info = extract_time(text)
+        if time_info:
+            t, t_end = time_info
+            start = datetime.combine(d, t)
+            if t_end:
+                end = datetime.combine(d, t_end)
+        else:
+            start = datetime.combine(d, time(0, 0))
+            warnings.append("没有识别到时间，默认 0:00 开始")
+    else:
+        warnings.append("没有识别到日期，需要手动填写")
+    if start and not end:
+        end = start + timedelta(hours=2)
+    return Event(
+        title=_extract_title(text, lines),
+        start=start,
+        end=end,
+        location=_extract_location(text),
+        description=text,
+        warnings=warnings,
+    )

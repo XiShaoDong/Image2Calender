@@ -142,3 +142,62 @@ def test_chinese_midnight():
 
 def test_no_time_returns_none():
     assert extract_time("欢迎来到现场") is None
+
+
+from datetime import datetime, timedelta
+
+from parser import Event, parse_event
+
+
+def test_full_chinese_event():
+    text = "城市音乐节\n地点：人民广场\n时间：8月15日 19:00-21:00\n票价免费"
+    ev = parse_event(text, base_date=datetime(2026, 7, 1))
+    assert ev.title == "城市音乐节"
+    assert ev.start == datetime(2026, 8, 15, 19, 0)
+    assert ev.end == datetime(2026, 8, 15, 21, 0)
+    assert ev.location == "人民广场"
+    assert ev.description == text
+
+
+def test_default_duration_two_hours():
+    ev = parse_event("讲座 9月2日 10:00", base_date=datetime(2026, 7, 1))
+    assert ev.start == datetime(2026, 9, 2, 10, 0)
+    assert ev.end == datetime(2026, 9, 2, 12, 0)
+
+
+def test_title_from_largest_font_line():
+    text = "小字内容\n演唱会之夜\n8月15日 19:00"
+    lines = [
+        {"text": "小字内容", "height": 20},
+        {"text": "演唱会之夜", "height": 90},
+        {"text": "8月15日 19:00", "height": 30},
+    ]
+    ev = parse_event(text, lines=lines, base_date=datetime(2026, 7, 1))
+    assert ev.title == "演唱会之夜"
+
+
+def test_title_falls_back_to_first_line():
+    ev = parse_event("周末读书会\n8月20日 14:00", base_date=datetime(2026, 7, 1))
+    assert ev.title == "周末读书会"
+
+
+def test_location_english_venue():
+    ev = parse_event("Tech Meetup\nVenue: Apple Park\nAug 15 2026 19:00", base_date=datetime(2026, 7, 1))
+    assert ev.location == "Apple Park"
+
+
+def test_location_wechat_at_prefix():
+    ev = parse_event("live show\n@三里屯太古里\n8月15日 19:00", base_date=datetime(2026, 7, 1))
+    assert ev.location == "三里屯太古里"
+
+
+def test_missing_date_sets_start_none():
+    ev = parse_event("欢迎光临", base_date=datetime(2026, 7, 1))
+    assert ev.start is None and ev.end is None
+    assert any("日期" in w for w in ev.warnings)
+
+
+def test_missing_time_uses_midday_default():
+    ev = parse_event("义卖活动 8月15日", base_date=datetime(2026, 7, 1))
+    assert ev.start == datetime(2026, 8, 15, 0, 0)
+    assert ev.end == datetime(2026, 8, 15, 2, 0)
