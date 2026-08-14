@@ -1,4 +1,5 @@
 import sys
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -62,6 +63,26 @@ def test_ics_get_before_post_is_empty():
     app_mod._last_events = []
     client = TestClient(app)
     resp = client.get("/api/ics")
+    assert resp.status_code == 200
+    assert "BEGIN:VEVENT" not in resp.text
+
+
+def test_ics_get_stateless_with_url_events():
+    import urllib.parse
+    payload = [_event_payload()]
+    query = urllib.parse.quote(json.dumps(payload))
+    client = TestClient(app)
+    resp = client.get(f"/api/ics?e={query}")
+    assert resp.status_code == 200
+    assert "测试活动" in resp.text
+    assert "DTSTART;TZID=Asia/Shanghai:20260815T190000" in resp.text
+
+
+def test_ics_get_stateless_bad_payload_falls_back_empty():
+    import app as app_mod
+    app_mod._last_events = []
+    client = TestClient(app)
+    resp = client.get("/api/ics?e=not-json")
     assert resp.status_code == 200
     assert "BEGIN:VEVENT" not in resp.text
 

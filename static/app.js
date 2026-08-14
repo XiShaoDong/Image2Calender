@@ -146,7 +146,16 @@ async function generateIcs() {
   a.download = 'events.ics';
   a.click();
   URL.revokeObjectURL(a.href);
-  document.getElementById('mobileImport').style.display = 'inline-block';
+  const mobileEvents = payload.map(p => ({
+    title: p.title,
+    start: p.start,
+    end: p.end,
+    location: p.location,
+    description: (p.description || '').slice(0, 500),
+  }));
+  const mobileBtn = document.getElementById('mobileImport');
+  mobileBtn.href = '/api/ics?e=' + encodeURIComponent(JSON.stringify(mobileEvents));
+  mobileBtn.style.display = 'inline-block';
   statusEl.textContent = '已生成 events.ics。iPhone 上点绿色按钮可直接进入日历导入（需与电脑同一 WiFi，或使用云端部署地址）';
 }
 
@@ -162,7 +171,11 @@ async function saveKey() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  document.getElementById('keyStatus').textContent = resp.ok ? '已保存，以后自动生效' : '保存失败';
+  let saved = false;
+  try { saved = (await resp.json()).ok; } catch (e) {}
+  document.getElementById('keyStatus').textContent = saved
+    ? '已保存，以后自动生效'
+    : '保存失败（云端部署请用环境变量配置 Key）';
 }
 
 async function loadKeys() {

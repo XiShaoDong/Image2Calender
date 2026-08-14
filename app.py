@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -107,8 +108,27 @@ def api_ics(payloads: list[EventPayload]):
 
 
 @app.get("/api/ics")
-def api_ics_get():
-    return _ics_response(_last_events)
+def api_ics_get(e: str | None = None):
+    events = _last_events
+    if e:
+        try:
+            payloads = json.loads(e)
+            parsed = []
+            for p in payloads:
+                ev = Event(
+                    title=str(p.get("title") or ""),
+                    start=_parse_dt(p.get("start")),
+                    end=_parse_dt(p.get("end")),
+                    location=str(p.get("location") or ""),
+                    description=str(p.get("description") or ""),
+                )
+                if ev.start:
+                    parsed.append(ev)
+            if parsed:
+                events = parsed
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
+    return _ics_response(events)
 
 
 def _ics_response(events: list[Event]) -> Response:
@@ -130,11 +150,12 @@ def api_config_get():
 
 @app.post("/api/config")
 def api_config_set(payload: ConfigPayload):
+    ok = True
     if payload.key is not None:
-        set_api_key(payload.key, DEFAULT_CONFIG)
+        ok = set_api_key(payload.key, DEFAULT_CONFIG) and ok
     if payload.llm_key is not None:
-        set_llm_key(payload.llm_key, DEFAULT_CONFIG)
-    return {"ok": True}
+        ok = set_llm_key(payload.llm_key, DEFAULT_CONFIG) and ok
+    return {"ok": ok}
 
 
 if not STATIC_DIR.exists():

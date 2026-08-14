@@ -14,8 +14,12 @@ def _load(config_path: Path) -> dict:
     return {}
 
 
-def _save(config_path: Path, data: dict) -> None:
-    config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+def _save(config_path: Path, data: dict) -> bool:
+    try:
+        config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return True
+    except OSError:
+        return False
 
 
 def get_api_key(config_path: Path = DEFAULT_CONFIG) -> str | None:
@@ -25,10 +29,10 @@ def get_api_key(config_path: Path = DEFAULT_CONFIG) -> str | None:
     return _load(config_path).get("api_key")
 
 
-def set_api_key(key: str, config_path: Path = DEFAULT_CONFIG) -> None:
+def set_api_key(key: str, config_path: Path = DEFAULT_CONFIG) -> bool:
     data = _load(config_path)
     data["api_key"] = key
-    _save(config_path, data)
+    return _save(config_path, data)
 
 
 def get_llm_key(config_path: Path = DEFAULT_CONFIG) -> str | None:
@@ -38,7 +42,7 @@ def get_llm_key(config_path: Path = DEFAULT_CONFIG) -> str | None:
     return _load(config_path).get("llm_key")
 
 
-def set_llm_key(key: str, config_path: Path = DEFAULT_CONFIG) -> None:
+def set_llm_key(key: str, config_path: Path = DEFAULT_CONFIG) -> bool:
     data = _load(config_path)
     data["llm_key"] = key
-    _save(config_path, data)
+    return _save(config_path, data)

@@ -47,7 +47,17 @@ uvicorn app:app --port 8000
 
 也可用仓库内的 `render.yaml` 一键部署（Blueprint）。
 
-> 注意：云端部署时网页保存的 key 存在临时磁盘，重启会丢失，请务必在 Render 控制台用环境变量配置两个 key。
+## 部署到 Vercel（免费，冷启动更快）
+
+1. 将代码推送到 GitHub
+2. 打开 https://vercel.com → Add New → Project → 导入仓库
+3. 无需任何配置，Framework 自动识别为 Other，直接 Deploy
+4. 在 Settings → Environment Variables 添加 `OCRSPACE_KEY`、`GEMINI_KEY`
+5. 部署完成后访问 `https://<项目名>.vercel.app`
+
+> 云端部署注意：Vercel/Render 文件系统不可持久化，网页保存的 key 重启会丢失，
+> 请务必用环境变量配置；一键直通按钮已做成无状态（事件编码在 URL 中），云端可用。
+> Vercel 免费版请求体上限 4.5MB，建议一次上传不超过 3-4 张图（页面会自动压缩）。
 
 ## 推送到 GitHub
 
