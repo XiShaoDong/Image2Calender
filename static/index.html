@@ -37,6 +37,29 @@
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .bg-orbs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; will-change: transform; }
+  .orb-1 {
+    width: 520px; height: 520px; top: -160px; left: -120px;
+    background: radial-gradient(circle, rgba(77,107,254,0.55), transparent 65%);
+    animation: drift 26s ease-in-out infinite alternate;
+  }
+  .orb-2 {
+    width: 460px; height: 460px; top: 28%; right: -160px;
+    background: radial-gradient(circle, rgba(124,77,255,0.4), transparent 65%);
+    animation: drift 32s ease-in-out infinite alternate-reverse;
+  }
+  .orb-3 {
+    width: 420px; height: 420px; bottom: -140px; left: 30%;
+    background: radial-gradient(circle, rgba(52,199,89,0.22), transparent 62%);
+    animation: drift 38s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(40px, 30px, 0) scale(1.08); }
   }
   ::selection { background: var(--ds-brand-soft); }
   .container { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
@@ -92,29 +115,40 @@
   .hero-desc { margin: 0 0 28px; max-width: 480px; color: var(--ds-description); font-size: 16px; }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   .btn {
-    display: inline-flex; align-items: center; gap: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     border: 1px solid transparent; border-radius: 10px;
-    padding: 12px 22px; font-size: 15px; font-weight: 500;
+    padding: 12px 22px; min-height: 44px; font-size: 15px; font-weight: 500;
     cursor: pointer; text-decoration: none;
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
     font-family: var(--ds-sans);
   }
   .btn:active { transform: translateY(1px); }
-  .btn-primary { background: var(--ds-brand); color: #fff; }
+  .btn-primary { background: var(--ds-brand); color: #fff; box-shadow: 0 6px 20px rgba(77,107,254,0.35), inset 0 1px 0 rgba(255,255,255,0.25); }
   .btn-primary:hover { background: #6179ff; }
-  .btn-primary:disabled { background: #2c3566; color: rgba(255,255,255,0.4); cursor: not-allowed; }
+  .btn-primary:disabled { background: #2c3566; color: rgba(255,255,255,0.4); cursor: not-allowed; box-shadow: none; }
   .btn-secondary {
-    background: rgba(255,255,255,0.04); color: var(--ds-primary);
-    border-color: var(--ds-border); backdrop-filter: blur(8px);
+    background: rgba(255,255,255,0.1);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--ds-primary);
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   }
-  .btn-secondary:hover { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.07); }
-  .btn-green { background: var(--ds-green); color: #06240f; }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.16); }
+  .btn-green { background: var(--ds-green); color: #06240f; box-shadow: 0 6px 20px rgba(52,199,89,0.3), inset 0 1px 0 rgba(255,255,255,0.35); }
   .btn-green:hover { background: #40d866; }
 
   .terminal {
-    background: rgba(0,0,0,0.35); backdrop-filter: blur(24px);
-    border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
-    box-shadow: 0 0 48px rgba(77,107,254,0.07), 0 24px 60px rgba(0,0,0,0.4);
+    position: relative;
+    background: rgba(255,255,255,0.055);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: var(--ds-radius);
+    box-shadow:
+      0 0 48px rgba(77,107,254,0.09),
+      0 24px 60px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.09);
     overflow: hidden;
   }
   .terminal-bar {
@@ -130,6 +164,7 @@
     margin: 16px; border: 1px dashed rgba(255,255,255,0.22); border-radius: 12px;
     padding: 56px 24px; text-align: center; cursor: pointer;
     color: var(--ds-description); font-family: var(--ds-mono); font-size: 14px;
+    background: rgba(255,255,255,0.025);
     transition: border-color 0.2s ease, background 0.2s ease;
   }
   #drop:hover { border-color: rgba(255,255,255,0.35); }
@@ -151,12 +186,16 @@
   .section-head p { margin: 0; color: var(--ds-description); }
   .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .feature-card {
-    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    background: rgba(255,255,255,0.05);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: var(--ds-radius); padding: 28px 24px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 32px rgba(0,0,0,0.28);
     display: flex; flex-direction: column; align-items: center; text-align: center;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
   }
-  .feature-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+  .feature-card:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); transform: translateY(-2px); }
   .feature-card svg { color: var(--ds-primary); opacity: 0.85; margin-bottom: 18px; }
   .feature-card h3 { margin: 0 0 8px; font-family: var(--ds-heading); font-size: 18px; font-weight: 600; }
   .feature-card p { margin: 0; color: var(--ds-description); font-size: 14px; line-height: 1.65; }
@@ -167,8 +206,12 @@
   }
   .card {
     display: flex; gap: 16px;
-    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    background: rgba(255,255,255,0.045);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.09);
     border-radius: var(--ds-radius); padding: 18px; margin-bottom: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 28px rgba(0,0,0,0.26);
   }
   .card .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--ds-border); }
   .card .fields { flex: 1; min-width: 0; }
@@ -195,8 +238,12 @@
     border-top: 1px solid var(--ds-border); padding: 48px 0 64px;
   }
   .settings details {
-    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    background: rgba(255,255,255,0.045);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.09);
     border-radius: var(--ds-radius); padding: 6px 24px 20px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 32px rgba(0,0,0,0.26);
   }
   .settings summary {
     cursor: pointer; padding: 16px 0; font-family: var(--ds-heading);
@@ -218,9 +265,12 @@
     max-width: 380px; margin: 16vh auto 0; padding: 0 20px;
   }
   #accessOverlay .card-box {
-    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    background: rgba(255,255,255,0.06);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: var(--ds-radius); padding: 28px; text-align: center;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 24px 60px rgba(0,0,0,0.55);
   }
   #accessOverlay h3 { margin: 0 0 6px; font-family: var(--ds-heading); font-size: 20px; }
   #accessOverlay p { margin: 0 0 16px; font-size: 13px; color: var(--ds-description); }
@@ -228,17 +278,44 @@
   #accessOverlay .btn { width: 100%; margin-top: 12px; justify-content: center; }
 
   @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; padding: 48px 0 40px; gap: 32px; }
+    .hero { grid-template-columns: 1fr; padding: 40px 0 32px; gap: 28px; }
     .feature-grid { grid-template-columns: 1fr; }
     .card { flex-direction: column; }
     .card .thumb { width: 100%; height: auto; max-height: 200px; }
+    .hero-actions { flex-direction: column; align-items: stretch; }
+    .hero-actions .btn { width: 100%; }
+    #actions .btn { width: 100%; margin-top: 10px; }
+    #actions { display: flex; flex-direction: column; align-items: stretch; }
+    #drop { padding: 44px 20px; }
+    .settings details { padding: 4px 16px 16px; }
+    .settings input, .settings select { max-width: 100%; }
+    #accessOverlay .modal { margin-top: 12vh; }
+    .nav { padding: 12px 16px; }
+  }
+  @media (max-width: 480px) {
+    .nav .badge { display: none; }
+    .hero-title { font-size: 32px; }
+    .terminal-bar .title { display: none; }
+    #cardsSection h2 { font-size: 19px; }
+    .feature-card { padding: 22px 18px; }
+  }
+  @media (max-width: 860px) {
+    .card input, .card textarea, select {
+      font-size: 16px;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; scroll-behavior: auto; }
+    .orb { animation: none !important; }
   }
 </style>
 </head>
 <body>
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
 <div id="accessOverlay">
   <div class="modal">
     <div class="card-box">
