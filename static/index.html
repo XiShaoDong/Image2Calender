@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
-<title>Image2Cal · 图片导入苹果日历</title>
+<title>Image2Cal</title>
+<meta name="description" content="上传海报/截图，自动识别活动信息，一键导入苹果日历">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Host+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -17,8 +19,8 @@
     --ds-primary: #f2f2f5;
     --ds-description: #9b9ba7;
     --ds-muted: #6c6c76;
-    --ds-brand: #4d6bfe;
-    --ds-brand-soft: rgba(77,107,254,0.14);
+    --ds-brand: #3b82f6;
+    --ds-brand-soft: rgba(59,130,246,0.16);
     --ds-green: #34c759;
     --ds-warn: #e6b450;
     --ds-danger: #ff5f57;
@@ -44,7 +46,7 @@
   .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; will-change: transform; }
   .orb-1 {
     width: 520px; height: 520px; top: -160px; left: -120px;
-    background: radial-gradient(circle, rgba(77,107,254,0.55), transparent 65%);
+    background: radial-gradient(circle, rgba(59,130,246,0.55), transparent 65%);
     animation: drift 26s ease-in-out infinite alternate;
   }
   .orb-2 {
@@ -96,8 +98,8 @@
   .hero::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
     background:
-      radial-gradient(600px 300px at 15% 10%, rgba(77,107,254,0.14), transparent 65%),
-      radial-gradient(500px 280px at 85% 20%, rgba(77,107,254,0.08), transparent 60%),
+      radial-gradient(600px 300px at 15% 10%, rgba(59,130,246,0.15), transparent 65%),
+      radial-gradient(500px 280px at 85% 20%, rgba(59,130,246,0.09), transparent 60%),
       radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.35), transparent),
       radial-gradient(1px 1px at 80% 70%, rgba(255,255,255,0.2), transparent),
       radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.25), transparent);
@@ -128,8 +130,8 @@
   }
   .btn svg { width: 16px; height: 16px; }
   .btn:active { transform: translateY(1px); }
-  .btn-primary { background: var(--ds-brand); color: #fff; box-shadow: 0 6px 20px rgba(77,107,254,0.35), inset 0 1px 0 rgba(255,255,255,0.25); }
-  .btn-primary:hover { background: #6179ff; }
+  .btn-primary { background: var(--ds-brand); color: #fff; box-shadow: 0 6px 20px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.25); }
+  .btn-primary:hover { background: #4d94ff; }
   .btn-primary:disabled { background: #2c3566; color: rgba(255,255,255,0.4); cursor: not-allowed; box-shadow: none; }
   .btn-secondary {
     background: rgba(255,255,255,0.1);
@@ -151,7 +153,7 @@
     border: 1px solid rgba(255,255,255,0.11);
     border-radius: var(--ds-radius);
     box-shadow:
-      0 0 48px rgba(77,107,254,0.09),
+      0 0 48px rgba(59,130,246,0.12),
       0 24px 60px rgba(0,0,0,0.45),
       inset 0 1px 0 rgba(255,255,255,0.09);
     overflow: hidden;
