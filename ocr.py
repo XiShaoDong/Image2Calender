@@ -51,7 +51,7 @@ def ocr_image(image_bytes: bytes, api_key: str, config_path=DEFAULT_CONFIG) -> O
             files={"file": ("image.jpg", image_bytes, "image/jpeg")},
             data={
                 "language": "auto",
-                "OCREngine": "1",
+                "OCREngine": "2",
                 "isOverlayRequired": "true",
                 "scale": "true",
             },

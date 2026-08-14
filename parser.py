@@ -149,8 +149,9 @@ def _extract_title(text: str, lines: list[dict] | None) -> str:
     if lines:
         candidates = [l for l in lines if l.get("text") and not re.search(r"\d", l["text"])]
         if candidates:
-            best = max(candidates, key=lambda l: l.get("height", 0))
-            return best["text"].strip()
+            max_h = max(l.get("height", 0) for l in candidates)
+            top = [l for l in candidates if l.get("height", 0) >= max_h * 0.8]
+            return top[0]["text"].strip()
     for line in text.splitlines():
         line = line.strip()
         if line and not re.search(r"(\d{1,2}[:：]\d{2})|(\d+\s*月)|(月|日|号)", line):
