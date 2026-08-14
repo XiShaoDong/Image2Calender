@@ -60,3 +60,17 @@ def test_config_post_saves(tmp_path, monkeypatch):
     resp = client.post("/api/config", json={"key": "abc-123"})
     assert resp.status_code == 200
     assert (tmp_path / "c.json").exists()
+
+
+def test_ocr_returns_multiple_events(monkeypatch):
+    import types
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_api_key", lambda *a, **k: "k")
+    monkeypatch.setattr(app_mod, "ocr_image", lambda *a, **k: types.SimpleNamespace(
+        text="8月15日 19:00 演出\n8月20日 10:00 讲座", lines=[]))
+    client = TestClient(app)
+    resp = client.post("/api/ocr", files=[("files", ("a.png", b"x", "image/png"))])
+    assert resp.status_code == 200
+    events = resp.json()["items"][0]["events"]
+    assert len(events) == 2
+    assert events[1]["start"] is not None

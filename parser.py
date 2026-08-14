@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
+import re
 
 @dataclass
 class Event:
@@ -10,8 +11,6 @@ class Event:
     description: str = ""
     warnings: list[str] = field(default_factory=list)
 
-from datetime import date
-
 CHINESE_WEEKDAYS = {"一": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "日": 6, "天": 6}
 
 MONTHS_EN = {
@@ -19,18 +18,44 @@ MONTHS_EN = {
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
 }
 
+_PLACEHOLDER_YEAR = 2000
 
-def _collect_dates(text: str) -> list[date]:
-    import re
-    dates: list[date] = []
+
+def _safe_date(year: int, month: int, day: int) -> date | None:
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def _find_dates(text: str) -> list[tuple[date, int, int]]:
+    found: list[tuple[date, int, int]] = []
     for m in re.finditer(r"(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?", text):
-        dates.append(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+        d = _safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if d:
+            found.append((d, m.start(), m.end()))
     for m in re.finditer(r"(?<!\d)(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?(?!\d)", text):
-        dates.append(date(2000, int(m.group(1)), int(m.group(2))))
+        d = _safe_date(_PLACEHOLDER_YEAR, int(m.group(1)), int(m.group(2)))
+        if d:
+            found.append((d, m.start(), m.end()))
     for m in re.finditer(r"(?<!\d)(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})(?!\d)", text):
-        dates.append(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+        d = _safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if d:
+            found.append((d, m.start(), m.end()))
     for m in re.finditer(r"(?<!\d)(\d{1,2})/(\d{1,2})(?!\d)", text):
-        dates.append(date(2000, int(m.group(1)), int(m.group(2))))
+        d = _safe_date(_PLACEHOLDER_YEAR, int(m.group(1)), int(m.group(2)))
+        if d:
+            found.append((d, m.start(), m.end()))
+    for m in re.finditer(r"(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})(?!\d)", text):
+        d = _safe_date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+        if d:
+            found.append((d, m.start(), m.end()))
+    for m in re.finditer(r"(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2})(?!\d)", text):
+        yy = int(m.group(3))
+        year = 2000 + yy if yy < 70 else 1900 + yy
+        d = _safe_date(year, int(m.group(1)), int(m.group(2)))
+        if d:
+            found.append((d, m.start(), m.end()))
     en_pattern = (
         r"(?<![A-Za-z])([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})(?!\d)"
         r"|(?<!\d)(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})(?!\d)"
@@ -40,20 +65,29 @@ def _collect_dates(text: str) -> list[date]:
         if m.group(1) and m.group(2) and m.group(3):
             mon = MONTHS_EN.get(m.group(1).lower()[:3])
             if mon:
-                dates.append(date(int(m.group(3)), mon, int(m.group(2))))
+                d = _safe_date(int(m.group(3)), mon, int(m.group(2)))
+                if d:
+                    found.append((d, m.start(), m.end()))
         elif m.group(4) and m.group(5) and m.group(6):
             mon = MONTHS_EN.get(m.group(5).lower()[:3])
             if mon:
-                dates.append(date(int(m.group(6)), mon, int(m.group(4))))
+                d = _safe_date(int(m.group(6)), mon, int(m.group(4)))
+                if d:
+                    found.append((d, m.start(), m.end()))
         elif m.group(7) and m.group(8):
             mon = MONTHS_EN.get(m.group(7).lower()[:3])
             if mon:
-                dates.append(date(2000, mon, int(m.group(8))))
-    return dates
+                d = _safe_date(_PLACEHOLDER_YEAR, mon, int(m.group(8)))
+                if d:
+                    found.append((d, m.start(), m.end()))
+    return found
+
+
+def _collect_dates(text: str) -> list[date]:
+    return [d for d, _, _ in _find_dates(text)]
 
 
 def _parse_relative_date(text: str, base_date: date) -> date | None:
-    import re
     if "今天" in text:
         return base_date
     if "明天" in text:
@@ -72,6 +106,20 @@ def _parse_relative_date(text: str, base_date: date) -> date | None:
     return None
 
 
+def _infer_year(d: date, base_date: date) -> tuple[date, list[str]]:
+    warnings: list[str] = []
+    if d.year == _PLACEHOLDER_YEAR:
+        d = d.replace(year=base_date.year)
+        if d < base_date:
+            d = d.replace(year=base_date.year + 1)
+            warnings.append(f"日期 {d.month}月{d.day}日 已过，推断为明年 {d.year} 年")
+        else:
+            warnings.append(f"图上没有年份，使用 {base_date.year} 年")
+    elif d.year > base_date.year + 1:
+        warnings.append(f"日期 {d} 年份可疑")
+    return d, warnings
+
+
 def extract_date(text: str, base_date: date) -> tuple[date, list[str]] | None:
     warnings: list[str] = []
     candidates = _collect_dates(text)
@@ -83,34 +131,22 @@ def extract_date(text: str, base_date: date) -> tuple[date, list[str]] | None:
     seen: dict[tuple[int, int], date] = {}
     for c in candidates:
         key = (c.month, c.day)
-        if key not in seen or c.year != 2000:
+        if key not in seen or c.year != _PLACEHOLDER_YEAR:
             seen[key] = c
     candidates = list(seen.values())
     result = None
     for c in candidates:
-        if c.year != 2000:
+        if c.year != _PLACEHOLDER_YEAR:
             result = c
             break
     if result is None:
         result = candidates[0]
-    if result.year == 2000:
-        result = result.replace(year=base_date.year)
-        if result < base_date:
-            result = result.replace(year=base_date.year + 1)
-            warnings.append(f"日期 {result.month}月{result.day}日 已过，推断为明年 {result.year} 年")
-        else:
-            warnings.append(f"图上没有年份，使用 {base_date.year} 年")
-    elif result.year > base_date.year + 1:
-        warnings.append(f"日期 {result} 年份可疑")
-    elif result.year == base_date.year and result < base_date:
-        result = result.replace(year=base_date.year + 1)
-        warnings.append(f"日期 {result} 已过，推断为明年 {result.year} 年")
+    result, year_warns = _infer_year(result, base_date)
+    warnings.extend(year_warns)
     if len(candidates) > 1:
         warnings.append(f"识别到多个候选日期，已取第一个: {[str(c) for c in candidates]}")
     return result, warnings
 
-
-from datetime import time
 
 _PERIODS = {"凌晨": 0, "上午": 0, "早上": 0, "中午": 12, "下午": 12, "晚上": 12}
 
@@ -122,17 +158,16 @@ def _hour_of_period(period: str, hour: int) -> int:
 
 
 def extract_time(text: str) -> tuple[time, time | None] | None:
-    import re
     m = re.search(r"(\d{1,2}):(\d{2})\s*[-~—]\s*(\d{1,2}):(\d{2})", text)
     if m:
         return time(int(m.group(1)), int(m.group(2))), time(int(m.group(3)), int(m.group(4)))
-    m = re.search(r"(?<!\d)(\d{1,2}):(\d{2})\s*(?:am|pm)?(?!\d)", text, re.IGNORECASE)
+    m = re.search(r"(?<!\d)(\d{1,2}):(\d{2})([ \t]*(?:am|pm|[ap]))?(?!\d)", text, re.IGNORECASE)
     if m:
         hour, minute = int(m.group(1)), int(m.group(2))
-        suffix = re.search(r"(\d{1,2}):(\d{2})\s*(am|pm)", text, re.IGNORECASE)
-        if suffix and suffix.group(3).lower() == "pm" and hour < 12:
+        suffix = (m.group(3) or "").strip().lower()
+        if suffix in ("pm", "p") and hour < 12:
             hour += 12
-        if suffix and suffix.group(3).lower() == "am" and hour == 12:
+        if suffix in ("am", "a") and hour == 12:
             hour = 0
         return time(hour, minute), None
     m = re.search(r"(\d{1,2})\s*(?:点|时)\s*(?:半|(\d{1,2})\s*分)?", text)
@@ -145,10 +180,7 @@ def extract_time(text: str) -> tuple[time, time | None] | None:
     return None
 
 
-import re
-from datetime import datetime, timedelta
-
-_LOCATION_KEYWORDS = ("地点", "地址", "venue", "@")
+_LOCATION_KEYWORDS = ("地点", "地址", "location", "venue", "@")
 
 
 def _extract_title(text: str, lines: list[dict] | None) -> str:
@@ -169,11 +201,60 @@ def _extract_location(text: str) -> str:
     for line in text.splitlines():
         line = line.strip()
         if any(kw.lower() in line.lower() for kw in _LOCATION_KEYWORDS):
-            line = re.sub(r"^(地点|地址|venue)\s*[:：]\s*", "", line, flags=re.IGNORECASE)
+            line = re.sub(r"^(地点|地址|location|venue)\s*[:：]\s*", "", line, flags=re.IGNORECASE)
             line = line.lstrip("@").strip()
             if line:
                 return line
     return ""
+
+
+def _date_time_rows(text: str, base_date: date) -> list[tuple[date, time | None, time | None, str]]:
+    dates = _find_dates(text)
+    if not dates:
+        return []
+    rows: list[tuple[date, time | None, time | None, str]] = []
+    for i, (d, ds, de) in enumerate(dates):
+        next_start = dates[i + 1][1] if i + 1 < len(dates) else len(text)
+        seg = text[de:next_start]
+        d2, _ = _infer_year(d, base_date)
+        t: time | None = None
+        t_end: time | None = None
+        rm = re.search(r"(\d{1,2}):(\d{2})\s*[-~—]\s*(\d{1,2}):(\d{2})", seg)
+        if rm:
+            t = time(int(rm.group(1)), int(rm.group(2)))
+            t_end = time(int(rm.group(3)), int(rm.group(4)))
+        else:
+            tm = re.search(r"(?<!\d)(\d{1,2}):(\d{2})([ \t]*(?:am|pm|[ap]))?(?!\d)", seg, re.IGNORECASE)
+            if tm:
+                hour, minute = int(tm.group(1)), int(tm.group(2))
+                suffix = (tm.group(3) or "").strip().lower()
+                if suffix in ("pm", "p") and hour < 12:
+                    hour += 12
+                elif suffix in ("am", "a") and hour == 12:
+                    hour = 0
+                t = time(hour, minute)
+        rows.append((d2, t, t_end, seg))
+    return rows
+
+
+def _row_title(seg: str, location: str) -> str:
+    keep: list[str] = []
+    loc_compact = location.replace(" ", "").lower()
+    for raw in seg.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        line = re.sub(r"^\d{1,2}(?=\s|$)\s*", "", line)
+        line = re.sub(r"^(mon|tue|wed|thu|fri|sat|sun)\w*\s*", "", line, flags=re.IGNORECASE)
+        line = re.sub(r"^\d{1,2}:\d{2}[ap]?m?\s*", "", line, flags=re.IGNORECASE)
+        if not line:
+            continue
+        if any(kw in line.lower() for kw in _LOCATION_KEYWORDS):
+            continue
+        if loc_compact and line.replace(" ", "").lower() in loc_compact:
+            continue
+        keep.append(line)
+    return " ".join(keep)
 
 
 def parse_event(text: str, lines: list[dict] | None = None, base_date: datetime | None = None) -> Event:
@@ -206,3 +287,26 @@ def parse_event(text: str, lines: list[dict] | None = None, base_date: datetime 
         description=text,
         warnings=warnings,
     )
+
+
+def parse_events(text: str, lines: list[dict] | None = None, base_date: datetime | None = None) -> list[Event]:
+    if base_date is None:
+        base_date = datetime.now()
+    rows = _date_time_rows(text, base_date.date())
+    dated = [(d, t, t_end, seg) for d, t, t_end, seg in rows if t]
+    if len(dated) < 2:
+        return [parse_event(text, lines, base_date)]
+    location = _extract_location(text)
+    events: list[Event] = []
+    for d, t, t_end, seg in dated:
+        start = datetime.combine(d, t)
+        end = datetime.combine(d, t_end) if t_end else start + timedelta(hours=2)
+        title = _row_title(seg, location) or _extract_title(text, lines)
+        events.append(Event(
+            title=title,
+            start=start,
+            end=end,
+            location=location,
+            description=text,
+        ))
+    return events

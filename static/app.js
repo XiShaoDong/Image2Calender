@@ -66,39 +66,48 @@ function toLocal(iso) {
 
 function renderCards() {
   cardsEl.innerHTML = '';
-  items.forEach((item, i) => {
-    const ev = item.event || {};
-    cardsEl.insertAdjacentHTML('beforeend', `
-      <div class="card">
-        <div>
-          <img class="thumb" src="${item.thumb || ''}">
-          <div style="font-size:11px;color:#999;margin-top:4px">${esc(item.filename)}</div>
-        </div>
-        <div class="fields">
-          <div class="pick">
-            <input type="checkbox" data-i="${i}" ${ev.start ? '' : 'disabled'} ${item.error ? '' : 'checked'}>
-            <span style="font-size:13px">导入此事件</span>
+  let cardIndex = 0;
+  items.forEach((item) => {
+    const evs = (item.events && item.events.length)
+      ? item.events
+      : [{ title: '', start: null, end: null, location: '', description: item.text || '', warnings: [] }];
+    evs.forEach((ev, ei) => {
+      cardsEl.insertAdjacentHTML('beforeend', `
+        <div class="card">
+          <div>
+            ${ei === 0 ? `<img class="thumb" src="${item.thumb || ''}">` : ''}
+            ${ei === 0 ? `<div style="font-size:11px;color:#999;margin-top:4px">${esc(item.filename)}</div>` : ''}
+            ${evs.length > 1 ? `<div style="font-size:11px;color:#007aff;margin-top:4px">事件 ${ei + 1}/${evs.length}</div>` : ''}
           </div>
-          <label>标题<input class="f-title" data-i="${i}" value="${esc(ev.title || '')}"></label>
-          <label>开始<input class="f-start" type="datetime-local" data-i="${i}" value="${toLocal(ev.start)}"></label>
-          <label>结束<input class="f-end" type="datetime-local" data-i="${i}" value="${toLocal(ev.end)}"></label>
-          <label>地点<input class="f-loc" data-i="${i}" value="${esc(ev.location || '')}"></label>
-          <label>描述<textarea class="f-desc" data-i="${i}">${esc(ev.description || '')}</textarea></label>
-          ${item.error ? `<div class="error">${esc(item.error)}</div>` : ''}
-          ${(ev.warnings || []).map(w => `<div class="warn">${esc(w)}</div>`).join('')}
-        </div>
-      </div>`);
+          <div class="fields">
+            <div class="pick">
+              <input type="checkbox" data-i="${cardIndex}" ${ev.start ? '' : 'disabled'} ${item.error ? '' : 'checked'}>
+              <span style="font-size:13px">导入此事件</span>
+            </div>
+            <label>标题<input class="f-title" data-i="${cardIndex}" value="${esc(ev.title || '')}"></label>
+            <label>开始<input class="f-start" type="datetime-local" data-i="${cardIndex}" value="${toLocal(ev.start)}"></label>
+            <label>结束<input class="f-end" type="datetime-local" data-i="${cardIndex}" value="${toLocal(ev.end)}"></label>
+            <label>地点<input class="f-loc" data-i="${cardIndex}" value="${esc(ev.location || '')}"></label>
+            <label>描述<textarea class="f-desc" data-i="${cardIndex}">${esc(ev.description || '')}</textarea></label>
+            ${item.error ? `<div class="error">${esc(item.error)}</div>` : ''}
+            ${(ev.warnings || []).map(w => `<div class="warn">${esc(w)}</div>`).join('')}
+          </div>
+        </div>`);
+      cardIndex++;
+    });
   });
   actionsEl.style.display = 'block';
   updateGenerateState();
 }
 
 function updateGenerateState() {
-  const anyChecked = items.some((it, i) => {
+  const total = document.querySelectorAll('.pick input[type=checkbox]').length;
+  let anyChecked = false;
+  for (let i = 0; i < total; i++) {
     const cb = document.querySelector(`.pick input[data-i="${i}"]`);
     const start = document.querySelector(`.f-start[data-i="${i}"]`);
-    return cb && cb.checked && start && start.value;
-  });
+    if (cb && cb.checked && start && start.value) anyChecked = true;
+  }
   generateBtn.disabled = !anyChecked;
 }
 
@@ -107,13 +116,14 @@ document.addEventListener('change', () => updateGenerateState());
 
 async function generateIcs() {
   const payload = [];
-  items.forEach((it, i) => {
+  const total = document.querySelectorAll('.pick input[type=checkbox]').length;
+  for (let i = 0; i < total; i++) {
     const cb = document.querySelector(`.pick input[data-i="${i}"]`);
-    if (!cb || !cb.checked) return;
+    if (!cb || !cb.checked) continue;
     const val = sel => { const el = document.querySelector(`.${sel}[data-i="${i}"]`); return el ? el.value : ''; };
     const start = val('f-start');
     const end = val('f-end');
-    if (!start) return;
+    if (!start) continue;
     payload.push({
       title: val('f-title'),
       start: start + ':00',
@@ -121,7 +131,7 @@ async function generateIcs() {
       location: val('f-loc'),
       description: val('f-desc'),
     });
-  });
+  }
   if (!payload.length) return;
   const resp = await fetch('/api/ics', {
     method: 'POST',

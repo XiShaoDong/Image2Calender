@@ -213,3 +213,71 @@ def test_location_line_with_number_does_not_crash():
     ev = parse_event("Live Show\nVenue: loc 200\nAug 15 2026 19:00", base_date=datetime(2026, 7, 1))
     assert ev.start == datetime(2026, 8, 15, 19, 0)
     assert ev.location == "loc 200"
+
+
+def test_us_mm_dd_yy_date():
+    d, warns = extract_date("08-20-26", date(2026, 7, 1))
+    assert d == date(2026, 8, 20)
+    assert warns == []
+
+
+def test_us_mm_dd_yy_1990s():
+    d, _ = extract_date("12-25-99", date(2026, 7, 1))
+    assert d == date(1999, 12, 25)
+
+
+def test_us_mm_dd_yyyy_date():
+    d, _ = extract_date("08-20-2026", date(2026, 7, 1))
+    assert d == date(2026, 8, 20)
+
+
+def test_explicit_past_year_not_shifted():
+    d, warns = extract_date("08-20-26", date(2026, 9, 1))
+    assert d == date(2026, 8, 20)
+    assert warns == []
+
+
+def test_time_single_letter_pm():
+    start, _ = extract_time("05:00p")
+    assert start == time(17, 0)
+
+
+def test_time_single_letter_pm_thirteen():
+    start, _ = extract_time("01:30p")
+    assert start == time(13, 30)
+
+
+def test_time_single_letter_am():
+    start, _ = extract_time("10:00a")
+    assert start == time(10, 0)
+
+
+SCHEDULE_TEXT = (
+    "Appointments From: 08-12-26 for Vike Lin\n"
+    "Location: MA-Malden-BSPT\n"
+    "1\nThu\n08-20-26\n05:00p\nPT Daily\nTreatment\nMA-Malden-\nBSPT\n"
+    "2\nTue\n08-25-26\n01:30p\nPT Daily\nTreatment\nMA-Malden-\nBSPT\n"
+    "3\nThu\n09-03-26\n02:00p\nPT Daily\nTreatment\nMA-Malden-\nBSPT"
+)
+
+
+def test_multi_event_schedule():
+    from parser import parse_events
+    evs = parse_events(SCHEDULE_TEXT, base_date=datetime(2026, 7, 1))
+    assert len(evs) == 3
+    assert evs[0].start == datetime(2026, 8, 20, 17, 0)
+    assert evs[0].end == datetime(2026, 8, 20, 19, 0)
+    assert evs[1].start == datetime(2026, 8, 25, 13, 30)
+    assert evs[2].start == datetime(2026, 9, 3, 14, 0)
+    assert evs[0].title == "PT Daily Treatment"
+    assert evs[2].title == "PT Daily Treatment"
+    assert all(e.location == "MA-Malden-BSPT" for e in evs)
+    assert all(e.end and e.end > e.start for e in evs)
+
+
+def test_parse_events_single_event_falls_back():
+    from parser import parse_events
+    evs = parse_events("城市音乐节\n地点：人民广场\n时间：8月15日 19:00-21:00", base_date=datetime(2026, 7, 1))
+    assert len(evs) == 1
+    assert evs[0].title == "城市音乐节"
+    assert evs[0].start == datetime(2026, 8, 15, 19, 0)

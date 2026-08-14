@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from config import get_api_key, set_api_key, DEFAULT_CONFIG
 from ocr import OcrApiError, OcrLimitError, ocr_image
-from parser import Event, parse_event
+from parser import Event, parse_events
 from ics_builder import build_ics
 
 app = FastAPI(title="poster2ics")
@@ -50,12 +50,12 @@ async def api_ocr(files: list[UploadFile] = File(...)):
     items = []
     for f in files:
         data = await f.read()
-        item = {"filename": f.filename or "image.jpg", "text": "", "event": None, "error": None}
+        item = {"filename": f.filename or "image.jpg", "text": "", "events": [], "error": None}
         try:
             result = ocr_image(data, key)
-            ev = parse_event(result.text, lines=result.lines)
+            evs = parse_events(result.text, lines=result.lines)
             item["text"] = result.text
-            item["event"] = ev.__dict__
+            item["events"] = [e.__dict__ for e in evs]
         except OcrLimitError as e:
             item["error"] = str(e)
         except OcrApiError as e:
