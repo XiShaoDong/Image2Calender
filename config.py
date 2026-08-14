@@ -29,3 +29,16 @@ def set_api_key(key: str, config_path: Path = DEFAULT_CONFIG) -> None:
     data = _load(config_path)
     data["api_key"] = key
     _save(config_path, data)
+
+
+def get_llm_key(config_path: Path = DEFAULT_CONFIG) -> str | None:
+    env_key = os.environ.get("GEMINI_KEY")
+    if env_key:
+        return env_key
+    return _load(config_path).get("llm_key")
+
+
+def set_llm_key(key: str, config_path: Path = DEFAULT_CONFIG) -> None:
+    data = _load(config_path)
+    data["llm_key"] = key
+    _save(config_path, data)

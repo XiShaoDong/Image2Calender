@@ -90,6 +90,7 @@ function renderCards() {
             <label>地点<input class="f-loc" data-i="${cardIndex}" value="${esc(ev.location || '')}"></label>
             <label>描述<textarea class="f-desc" data-i="${cardIndex}">${esc(ev.description || '')}</textarea></label>
             ${item.error ? `<div class="error">${esc(item.error)}</div>` : ''}
+            ${item.source === 'llm' ? '<div class="warn">智能解析（LLM）</div>' : ''}
             ${(ev.warnings || []).map(w => `<div class="warn">${esc(w)}</div>`).join('')}
           </div>
         </div>`);
@@ -149,12 +150,30 @@ async function generateIcs() {
 }
 
 async function saveKey() {
-  const key = document.getElementById('keyInput').value.trim();
-  if (!key) return;
+  const body = {};
+  const ocrKey = document.getElementById('keyInput').value.trim();
+  const llmKey = document.getElementById('llmKeyInput').value.trim();
+  if (ocrKey) body.key = ocrKey;
+  if (llmKey) body.llm_key = llmKey;
+  if (!Object.keys(body).length) return;
   const resp = await fetch('/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key }),
+    body: JSON.stringify(body),
   });
-  document.getElementById('keyStatus').textContent = resp.ok ? '已保存' : '保存失败';
+  document.getElementById('keyStatus').textContent = resp.ok ? '已保存，以后自动生效' : '保存失败';
 }
+
+async function loadKeys() {
+  try {
+    const resp = await fetch('/api/config');
+    if (!resp.ok) return;
+    const cfg = await resp.json();
+    if (cfg.ocr_key) document.getElementById('keyInput').value = cfg.ocr_key;
+    if (cfg.llm_key) document.getElementById('llmKeyInput').value = cfg.llm_key;
+    if (cfg.ocr_key || cfg.llm_key) {
+      document.getElementById('keyStatus').textContent = '已加载已保存的 Key';
+    }
+  } catch (e) {}
+}
+loadKeys();

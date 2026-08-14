@@ -74,3 +74,77 @@ def test_ocr_returns_multiple_events(monkeypatch):
     events = resp.json()["items"][0]["events"]
     assert len(events) == 2
     assert events[1]["start"] is not None
+
+
+def test_ocr_llm_fallback_used(monkeypatch):
+    import types
+    from datetime import datetime
+    import app as app_mod
+    from parser import Event
+    monkeypatch.setattr(app_mod, "get_api_key", lambda *a, **k: "k")
+    monkeypatch.setattr(app_mod, "get_llm_key", lambda *a, **k: "gkey")
+    monkeypatch.setattr(app_mod, "ocr_image", lambda *a, **k: types.SimpleNamespace(
+        text="花哨海报无日期无标签", lines=[]))
+    llm_event = Event(title="LLM 标题", start=datetime(2026, 8, 15, 19, 0))
+    monkeypatch.setattr(app_mod, "parse_with_llm", lambda *a, **k: [llm_event])
+    client = TestClient(app)
+    resp = client.post("/api/ocr", files=[("files", ("a.png", b"x", "image/png"))])
+    item = resp.json()["items"][0]
+    assert item["source"] == "llm"
+    assert item["events"][0]["title"] == "LLM 标题"
+
+
+def test_ocr_llm_unavailable_keeps_regex(monkeypatch):
+    import types
+    from llm import LlmUnavailableError
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_api_key", lambda *a, **k: "k")
+    monkeypatch.setattr(app_mod, "get_llm_key", lambda *a, **k: "gkey")
+    monkeypatch.setattr(app_mod, "ocr_image", lambda *a, **k: types.SimpleNamespace(
+        text="花哨海报无日期", lines=[]))
+    monkeypatch.setattr(app_mod, "parse_with_llm", lambda *a, **k: (_ for _ in ()).throw(LlmUnavailableError("down")))
+    client = TestClient(app)
+    resp = client.post("/api/ocr", files=[("files", ("a.png", b"x", "image/png"))])
+    item = resp.json()["items"][0]
+    assert item["source"] == "regex"
+    assert item["events"][0]["start"] is None
+
+
+def test_ocr_regex_clean_no_llm_call(monkeypatch):
+    import types
+    from datetime import datetime
+    import app as app_mod
+    monkeypatch.setattr(app_mod, "get_api_key", lambda *a, **k: "k")
+    monkeypatch.setattr(app_mod, "get_llm_key", lambda *a, **k: "gkey")
+    monkeypatch.setattr(app_mod, "ocr_image", lambda *a, **k: types.SimpleNamespace(
+        text="城市音乐节\n地点：人民广场\n时间：8月15日 19:00-21:00", lines=[]))
+    called = {"n": 0}
+    monkeypatch.setattr(app_mod, "parse_with_llm", lambda *a, **k: called.update(n=called["n"] + 1))
+    client = TestClient(app)
+    resp = client.post("/api/ocr", files=[("files", ("a.png", b"x", "image/png"))])
+    item = resp.json()["items"][0]
+    assert item["source"] == "regex"
+    assert called["n"] == 0
+    assert item["events"][0]["title"] == "城市音乐节"
+
+
+def test_config_returns_both_keys(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
+    from config import set_llm_key, set_api_key
+    set_api_key("ocr-1", tmp_path / "c.json")
+    set_llm_key("llm-1", tmp_path / "c.json")
+    client = TestClient(app)
+    cfg = client.get("/api/config").json()
+    assert cfg["ocr_key"] == "ocr-1"
+    assert cfg["llm_key"] == "llm-1"
+    assert cfg["has_key"] is True
+
+
+def test_config_post_saves_llm_key(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
+    client = TestClient(app)
+    resp = client.post("/api/config", json={"llm_key": "gem-key"})
+    assert resp.status_code == 200
+    cfg = client.get("/api/config").json()
+    assert cfg["llm_key"] == "gem-key"
+    assert cfg["ocr_key"] is None

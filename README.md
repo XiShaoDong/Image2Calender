@@ -7,10 +7,20 @@
 ```bash
 pip install -r requirements.txt
 # 获取免费 OCR key: https://ocr.space/ocrapi#freeapi （25,000次/月）
-export OCRSPACE_KEY=你的key   # 或在网页设置区粘贴
+export OCRSPACE_KEY=你的key   # 或在网页设置区粘贴（保存一次永久生效）
+# 可选：获取免费 Gemini key: https://aistudio.google.com/apikey （1,500次/天）
+export GEMINI_KEY=你的key      # 或在网页设置区粘贴，用于复杂海报的智能解析
 uvicorn app:app --port 8000
 # 浏览器打开 http://localhost:8000
 ```
+
+两个 Key 都可以在网页设置区粘贴保存，存到本地 config.json，之后打开页面自动回填，无需重复输入。
+
+## 解析策略
+
+- 规则解析（纯正则，零成本）优先：结构规整的排班表、带"时间：/地点："标签的海报直接解析
+- LLM 兜底：正则失败或结果可疑（无日期/无标题/多候选日期）时，自动调 Gemini 智能解析
+- 解析来源会显示在卡片上（"智能解析（LLM）"标记），LLM 不可用或失败时自动回退到规则结果
 
 ## 手机使用
 

@@ -6,7 +6,8 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from config import get_api_key, set_api_key, DEFAULT_CONFIG
+from config import get_api_key, get_llm_key, set_api_key, set_llm_key, DEFAULT_CONFIG
+from llm import LlmUnavailableError, parse_with_llm
 from ocr import OcrApiError, OcrLimitError, ocr_image
 from parser import Event, parse_events
 from ics_builder import build_ics
@@ -24,7 +25,28 @@ class EventPayload(BaseModel):
 
 
 class ConfigPayload(BaseModel):
-    key: str
+    key: str | None = None
+    llm_key: str | None = None
+
+
+def _needs_llm(events: list[Event]) -> bool:
+    return any(
+        not e.start or not e.title or any("多个候选" in w for w in e.warnings)
+        for e in events
+    )
+
+
+def _parse_with_fallback(text: str, lines: list[dict] | None) -> tuple[list[Event], str]:
+    events = parse_events(text, lines=lines)
+    llm_key = get_llm_key(DEFAULT_CONFIG)
+    if llm_key and _needs_llm(events):
+        try:
+            llm_events = parse_with_llm(text, llm_key)
+            if llm_events:
+                return llm_events, "llm"
+        except LlmUnavailableError:
+            pass
+    return events, "regex"
 
 
 def _parse_dt(s: str | None) -> datetime | None:
@@ -50,12 +72,13 @@ async def api_ocr(files: list[UploadFile] = File(...)):
     items = []
     for f in files:
         data = await f.read()
-        item = {"filename": f.filename or "image.jpg", "text": "", "events": [], "error": None}
+        item = {"filename": f.filename or "image.jpg", "text": "", "events": [], "source": "regex", "error": None}
         try:
             result = ocr_image(data, key)
-            evs = parse_events(result.text, lines=result.lines)
+            evs, source = _parse_with_fallback(result.text, result.lines)
             item["text"] = result.text
             item["events"] = [e.__dict__ for e in evs]
+            item["source"] = source
         except OcrLimitError as e:
             item["error"] = str(e)
         except OcrApiError as e:
@@ -87,12 +110,19 @@ def api_ics(payloads: list[EventPayload]):
 
 @app.get("/api/config")
 def api_config_get():
-    return {"has_key": bool(get_api_key(DEFAULT_CONFIG))}
+    return {
+        "has_key": bool(get_api_key(DEFAULT_CONFIG)),
+        "ocr_key": get_api_key(DEFAULT_CONFIG),
+        "llm_key": get_llm_key(DEFAULT_CONFIG),
+    }
 
 
 @app.post("/api/config")
 def api_config_set(payload: ConfigPayload):
-    set_api_key(payload.key, DEFAULT_CONFIG)
+    if payload.key is not None:
+        set_api_key(payload.key, DEFAULT_CONFIG)
+    if payload.llm_key is not None:
+        set_llm_key(payload.llm_key, DEFAULT_CONFIG)
     return {"ok": True}
 
 

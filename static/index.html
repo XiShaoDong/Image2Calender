@@ -28,12 +28,17 @@
 <body>
 <h1>图片导入苹果日历</h1>
 <details>
-  <summary>OCR API Key 设置</summary>
+  <summary>API Key 设置（保存一次，以后自动生效）</summary>
   <p style="font-size:13px;color:#666">
-    免费注册获取 key：<a href="https://ocr.space/ocrapi#freeapi" target="_blank">ocr.space/ocrapi</a>（每月 25,000 次免费）。
-    不填可用环境变量 OCRSPACE_KEY。
+    OCR key（必填）：<a href="https://ocr.space/ocrapi#freeapi" target="_blank">ocr.space/ocrapi</a> 免费注册（25,000 次/月）。<br>
+    Gemini key（选填）：<a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> 免费获取（1500 次/天）。用于复杂海报的智能解析，不填则只用规则解析。
   </p>
-  <input id="keyInput" placeholder="粘贴 OCR.space API Key" style="padding:6px;width:60%">
+  <label style="font-size:13px;display:block;margin-bottom:6px">OCR.space Key
+    <input id="keyInput" placeholder="粘贴 OCR.space API Key" style="padding:6px;width:100%;box-sizing:border-box">
+  </label>
+  <label style="font-size:13px;display:block;margin-bottom:6px">Gemini Key（可选）
+    <input id="llmKeyInput" placeholder="粘贴 Gemini API Key" style="padding:6px;width:100%;box-sizing:border-box">
+  </label>
   <button id="keySave" type="button" onclick="saveKey()" style="padding:6px 12px;font-size:13px">保存</button>
   <span id="keyStatus" style="font-size:12px;color:#666"></span>
 </details>
