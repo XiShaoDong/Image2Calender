@@ -275,6 +275,16 @@ def test_multi_event_schedule():
     assert all(e.end and e.end > e.start for e in evs)
 
 
+def test_multi_event_description_is_row_segment():
+    from parser import parse_events
+    evs = parse_events(SCHEDULE_TEXT, base_date=datetime(2026, 7, 1))
+    assert "08-25-26" not in evs[0].description
+    assert "05:00p" in evs[0].description
+    assert "PT Daily" in evs[1].description
+    assert "02:00p" in evs[2].description
+    assert "Appointments From" not in evs[1].description
+
+
 def test_parse_events_single_event_falls_back():
     from parser import parse_events
     evs = parse_events("城市音乐节\n地点：人民广场\n时间：8月15日 19:00-21:00", base_date=datetime(2026, 7, 1))

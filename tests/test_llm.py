@@ -74,6 +74,31 @@ def test_description_defaults_to_raw_text(monkeypatch):
     assert evs[0].description == "原始文本"
 
 
+def test_description_kept_empty_for_multiple_events(monkeypatch):
+    body = {
+        "candidates": [{"content": {"parts": [{"text": (
+            '{"events": [{"title": "A", "start": "2026-08-15T19:00:00"}, '
+            '{"title": "B", "start": "2026-08-16T10:00:00"}]}'
+        )}]}}]
+    }
+    monkeypatch.setattr(llm.requests, "post", lambda *a, **k: _FakeResp(body))
+    evs = llm.parse_with_llm("整篇文本", "k", base_date=datetime(2026, 7, 1))
+    assert len(evs) == 2
+    assert evs[0].description == ""
+    assert evs[1].description == ""
+
+
+def test_llm_description_used_when_provided(monkeypatch):
+    body = {
+        "candidates": [{"content": {"parts": [{"text": (
+            '{"events": [{"title": "A", "start": "2026-08-15T19:00:00", "description": "专属描述"}]}'
+        )}]}}]
+    }
+    monkeypatch.setattr(llm.requests, "post", lambda *a, **k: _FakeResp(body))
+    evs = llm.parse_with_llm("整篇文本", "k", base_date=datetime(2026, 7, 1))
+    assert evs[0].description == "专属描述"
+
+
 def test_network_error_raises_unavailable(monkeypatch):
     def boom(*a, **k):
         raise llm.requests.RequestException("boom")

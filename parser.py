@@ -307,6 +307,6 @@ def parse_events(text: str, lines: list[dict] | None = None, base_date: datetime
             start=start,
             end=end,
             location=location,
-            description=text,
+            description=seg.strip(),
         ))
     return events

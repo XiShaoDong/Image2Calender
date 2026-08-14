@@ -208,7 +208,7 @@
   .feature-card h3 { margin: 0 0 8px; font-family: var(--ds-heading); font-size: 18px; font-weight: 500; line-height: 150%; }
   .feature-card p { margin: 0; color: var(--ds-description); font-size: 14px; line-height: 150%; }
 
-  #cardsSection { padding: 0 0 48px; }
+  #cardsSection { padding-bottom: 48px; }
   #cardsSection h2 {
     margin: 0 0 20px; font-family: var(--ds-heading); font-size: 20px; font-weight: 500; line-height: 150%;
   }
@@ -223,13 +223,18 @@
   }
   .card .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--ds-border); }
   .card .fields { flex: 1; min-width: 0; }
-  .card label { display: block; font-size: 12px; color: var(--ds-muted); margin-top: 8px; }
+  .card label { display: block; width: 100%; font-size: 12px; color: var(--ds-muted); margin-top: 8px; }
   .card input, .card textarea, select {
-    width: 100%; box-sizing: border-box; padding: 7px 10px;
+    width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 7px 10px;
     background: rgba(255,255,255,0.05); color: var(--ds-primary);
     border: 1px solid var(--ds-border); border-radius: 8px;
     font-size: 14px; font-family: var(--ds-sans);
+    text-align: left;
     transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .card input[type="datetime-local"] {
+    -webkit-appearance: none; appearance: none;
+    min-width: 0; width: 100%; max-width: 100%;
   }
   .card input:focus, .card textarea:focus, select:focus {
     outline: none; border-color: var(--ds-brand); background: rgba(255,255,255,0.07);
@@ -397,6 +402,11 @@
     </div>
   </section>
 
+  <section id="cardsSection" class="container" style="display:none">
+    <h2>识别结果 <span class="mono badge-blue">// 确认后生成</span></h2>
+    <div id="cards"></div>
+  </section>
+
   <section class="features">
     <div class="container">
       <div class="section-head">
@@ -441,11 +451,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <section id="cardsSection" class="container" style="display:none">
-    <h2>识别结果 <span class="mono badge-blue">// 确认后生成</span></h2>
-    <div id="cards"></div>
   </section>
 
   <section class="settings">

@@ -67,8 +67,10 @@ def _parse_events_from(data: dict, text: str, base_date: datetime) -> list[Event
             start=start,
             end=end,
             location=str(item.get("location") or "").strip(),
-            description=str(item.get("description") or text),
+            description=str(item.get("description") or "").strip(),
         ))
+    if len(events) == 1 and not events[0].description:
+        events[0].description = text
     return events
 
 
