@@ -91,7 +91,7 @@
   .hero {
     position: relative; overflow: hidden;
     display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
-    padding: 88px 0 72px;
+    padding-top: 88px; padding-bottom: 72px;
   }
   .hero::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -288,15 +288,15 @@
       grid-template-columns: 1fr;
       min-height: 100svh;
       align-content: center;
-      padding: 56px 0 48px; gap: 32px;
+      padding-top: 56px; padding-bottom: 48px; gap: 32px;
     }
     .hero-label { font-size: 15px; margin-bottom: 12px; }
     .hero-desc { font-size: 15px; }
     .feature-grid { grid-template-columns: 1fr; gap: 16px; }
     .card { flex-direction: column; padding: 16px; }
     .card .thumb { width: 100%; height: auto; max-height: 200px; }
-    .hero-actions { flex-direction: column; align-items: stretch; }
-    .hero-actions .btn { width: 100%; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .hero-actions .btn { flex: 1 1 auto; min-width: 0; }
     #actions .btn { width: 100%; margin-top: 10px; }
     #actions { display: flex; flex-direction: column; align-items: stretch; }
     #drop { padding: 40px 16px; margin: 12px; }
@@ -365,7 +365,7 @@
       <h1 class="hero-title">让海报上的活动<br><em>一键进入</em>你的日历</h1>
       <p class="hero-desc">上传活动海报、聊天截图或预约排班表，自动识别标题、日期、时间、地点。规则解析优先，复杂海报由 AI 智能兜底，支持批量多事件。</p>
       <div class="hero-actions">
-        <button class="btn btn-primary" onclick="document.getElementById('drop').scrollIntoView({behavior:'smooth'})">
+        <button class="btn btn-primary" onclick="goToUpload()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
           开始上传
         </button>

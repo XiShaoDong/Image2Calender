@@ -226,10 +226,20 @@ async function generateIcs() {
   statusEl.textContent = '已生成 events.ics。iPhone 上点绿色按钮可直接进入日历导入（需与电脑同一 WiFi，或使用云端部署地址）';
 }
 
+function smoothScrollTo(el) {
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.2;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+}
+
 function goToSettings() {
   const details = document.getElementById('settingsDetails');
   if (!details.open) details.open = true;
-  details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  smoothScrollTo(details);
+}
+
+function goToUpload() {
+  smoothScrollTo(document.getElementById('drop'));
 }
 
 async function saveKey() {
