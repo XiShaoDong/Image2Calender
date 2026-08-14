@@ -1,89 +1,405 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>图片导入苹果日历</title>
+<meta name="color-scheme" content="dark">
+<title>Image2Cal · 图片导入苹果日历</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Host+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: -apple-system, sans-serif; max-width: 860px; margin: 0 auto; padding: 16px; color: #222; }
-  h1 { font-size: 22px; }
-  #drop { border: 2px dashed #aaa; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; color: #666; }
-  #drop.dragover { border-color: #007aff; background: #eef6ff; }
-  .card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 12px; display: flex; gap: 12px; }
-  .card .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
-  .card .fields { flex: 1; }
-  .card label { display: block; font-size: 12px; color: #888; margin-top: 6px; }
-  .card input, .card textarea { width: 100%; box-sizing: border-box; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-  .card textarea { height: 48px; }
-  .warn { color: #b8860b; font-size: 12px; }
-  .error { color: #d00; font-size: 12px; }
-  .card .pick { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  #actions { margin-top: 16px; text-align: center; }
-  button { background: #007aff; color: #fff; border: none; border-radius: 8px; padding: 10px 22px; font-size: 15px; cursor: pointer; }
-  button:disabled { background: #ccc; cursor: not-allowed; }
-  details { margin-top: 16px; background: #f6f6f6; border-radius: 8px; padding: 10px; }
-  #status { margin-top: 12px; font-size: 13px; color: #666; }
+  :root {
+    --ds-page: #08080c;
+    --ds-surface: rgba(255,255,255,0.04);
+    --ds-surface-3: #101016;
+    --ds-border: rgba(255,255,255,0.08);
+    --ds-primary: #f2f2f5;
+    --ds-description: #9b9ba7;
+    --ds-muted: #6c6c76;
+    --ds-brand: #4d6bfe;
+    --ds-brand-soft: rgba(77,107,254,0.14);
+    --ds-green: #34c759;
+    --ds-warn: #e6b450;
+    --ds-danger: #ff5f57;
+    --ds-radius: 16px;
+    --ds-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ds-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
+    --ds-heading: "Host Grotesk", "DM Sans", -apple-system, "PingFang SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ds-page);
+    color: var(--ds-primary);
+    font-family: var(--ds-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--ds-brand-soft); }
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  .mono { font-family: var(--ds-mono); }
+
+  header { border-bottom: 1px solid var(--ds-border); }
+  .nav {
+    display: flex; align-items: center; gap: 12px;
+    max-width: 1080px; margin: 0 auto; padding: 16px 20px;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--ds-primary); text-decoration: none; font-weight: 600; font-size: 17px;
+  }
+  .nav-logo svg { color: var(--ds-brand); }
+  .badge {
+    display: inline-flex; align-items: center; border-radius: 8px; padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0.04) 65%, rgba(255,255,255,0.28) 100%);
+    box-shadow: 0 0 16px rgba(255,255,255,0.08), 0 0 32px rgba(255,255,255,0.04);
+  }
+  .badge span {
+    padding: 5px 9px; border-radius: 7px; background: rgba(0,0,0,0.35);
+    font-family: var(--ds-mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.05em; color: rgba(255,255,255,0.95);
+  }
+
+  .hero {
+    position: relative; overflow: hidden;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+    padding: 88px 0 72px;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(600px 300px at 15% 10%, rgba(77,107,254,0.14), transparent 65%),
+      radial-gradient(500px 280px at 85% 20%, rgba(77,107,254,0.08), transparent 60%),
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 80% 70%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.25), transparent);
+  }
+  .hero > * { position: relative; }
+  .hero-label {
+    margin: 0 0 16px; font-size: 16px; font-weight: 500; color: #fff;
+    letter-spacing: -0.01em;
+  }
+  h1.hero-title {
+    margin: 0 0 20px;
+    font-family: var(--ds-heading);
+    font-size: clamp(34px, 5vw, 56px);
+    font-weight: 600; line-height: 1.18; letter-spacing: -0.02em;
+  }
+  .hero-title em { font-style: normal; color: var(--ds-brand); }
+  .hero-desc { margin: 0 0 28px; max-width: 480px; color: var(--ds-description); font-size: 16px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid transparent; border-radius: 10px;
+    padding: 12px 22px; font-size: 15px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    font-family: var(--ds-sans);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--ds-brand); color: #fff; }
+  .btn-primary:hover { background: #6179ff; }
+  .btn-primary:disabled { background: #2c3566; color: rgba(255,255,255,0.4); cursor: not-allowed; }
+  .btn-secondary {
+    background: rgba(255,255,255,0.04); color: var(--ds-primary);
+    border-color: var(--ds-border); backdrop-filter: blur(8px);
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.07); }
+  .btn-green { background: var(--ds-green); color: #06240f; }
+  .btn-green:hover { background: #40d866; }
+
+  .terminal {
+    background: rgba(0,0,0,0.35); backdrop-filter: blur(24px);
+    border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+    box-shadow: 0 0 48px rgba(77,107,254,0.07), 0 24px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  .terminal-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 16px; border-bottom: 1px solid var(--ds-border);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .terminal-bar .title {
+    margin-left: 8px; font-family: var(--ds-mono); font-size: 12px; color: var(--ds-muted);
+  }
+  #drop {
+    margin: 16px; border: 1px dashed rgba(255,255,255,0.22); border-radius: 12px;
+    padding: 56px 24px; text-align: center; cursor: pointer;
+    color: var(--ds-description); font-family: var(--ds-mono); font-size: 14px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  #drop:hover { border-color: rgba(255,255,255,0.35); }
+  #drop.dragover { border-color: var(--ds-brand); background: var(--ds-brand-soft); }
+  #drop .prompt { color: var(--ds-brand); }
+  #drop small { color: var(--ds-muted); font-family: var(--ds-sans); }
+  #status {
+    margin: 0 16px 16px; min-height: 1.3em;
+    font-family: var(--ds-mono); font-size: 12px; color: var(--ds-muted);
+  }
+  #actions { padding: 0 16px 18px; text-align: center; }
+
+  section.features { padding: 56px 0 64px; border-top: 1px solid var(--ds-border); }
+  .section-head { text-align: center; max-width: 720px; margin: 0 auto 48px; }
+  .section-head h2 {
+    margin: 16px 0 12px; font-family: var(--ds-heading);
+    font-size: clamp(24px, 3.4vw, 34px); font-weight: 600; letter-spacing: -0.01em;
+  }
+  .section-head p { margin: 0; color: var(--ds-description); }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature-card {
+    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius); padding: 28px 24px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .feature-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+  .feature-card svg { color: var(--ds-primary); opacity: 0.85; margin-bottom: 18px; }
+  .feature-card h3 { margin: 0 0 8px; font-family: var(--ds-heading); font-size: 18px; font-weight: 600; }
+  .feature-card p { margin: 0; color: var(--ds-description); font-size: 14px; line-height: 1.65; }
+
+  #cardsSection { padding: 0 0 64px; }
+  #cardsSection h2 {
+    margin: 0 0 24px; font-family: var(--ds-heading); font-size: 22px; font-weight: 600;
+  }
+  .card {
+    display: flex; gap: 16px;
+    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius); padding: 18px; margin-bottom: 14px;
+  }
+  .card .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--ds-border); }
+  .card .fields { flex: 1; min-width: 0; }
+  .card label { display: block; font-size: 12px; color: var(--ds-muted); margin-top: 8px; }
+  .card input, .card textarea, select {
+    width: 100%; box-sizing: border-box; padding: 7px 10px;
+    background: rgba(255,255,255,0.05); color: var(--ds-primary);
+    border: 1px solid var(--ds-border); border-radius: 8px;
+    font-size: 14px; font-family: var(--ds-sans);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .card input:focus, .card textarea:focus, select:focus {
+    outline: none; border-color: var(--ds-brand); background: rgba(255,255,255,0.07);
+  }
+  .card textarea { height: 52px; resize: vertical; }
+  .card .pick { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  input[type="checkbox"] { accent-color: var(--ds-brand); width: 16px; height: 16px; cursor: pointer; }
+  .warn { color: var(--ds-warn); font-size: 12px; }
+  .error { color: var(--ds-danger); font-size: 12px; }
+  .meta { font-size: 11px; color: var(--ds-muted); margin-top: 6px; }
+  .badge-blue { color: var(--ds-brand); font-family: var(--ds-mono); font-size: 11px; }
+
+  .settings {
+    border-top: 1px solid var(--ds-border); padding: 48px 0 64px;
+  }
+  .settings details {
+    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius); padding: 6px 24px 20px;
+  }
+  .settings summary {
+    cursor: pointer; padding: 16px 0; font-family: var(--ds-heading);
+    font-size: 16px; font-weight: 600; color: var(--ds-primary);
+  }
+  .settings summary:hover { color: var(--ds-brand); }
+  .settings input, .settings select { max-width: 480px; }
+  .settings label { font-size: 13px; color: var(--ds-description); display: block; margin-bottom: 10px; }
+  .settings p.hint { font-size: 13px; color: var(--ds-muted); }
+  .settings a { color: var(--ds-brand); }
+
+  footer { border-top: 1px solid var(--ds-border); padding: 24px 0 40px; text-align: center; color: var(--ds-muted); font-size: 13px; }
+
+  #accessOverlay {
+    display: none; position: fixed; inset: 0; z-index: 99;
+    background: rgba(5,5,8,0.82); backdrop-filter: blur(20px);
+  }
+  #accessOverlay .modal {
+    max-width: 380px; margin: 16vh auto 0; padding: 0 20px;
+  }
+  #accessOverlay .card-box {
+    background: var(--ds-surface-3); border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius); padding: 28px; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+  #accessOverlay h3 { margin: 0 0 6px; font-family: var(--ds-heading); font-size: 20px; }
+  #accessOverlay p { margin: 0 0 16px; font-size: 13px; color: var(--ds-description); }
+  #accessOverlay input { text-align: center; }
+  #accessOverlay .btn { width: 100%; margin-top: 12px; justify-content: center; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding: 48px 0 40px; gap: 32px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .card { flex-direction: column; }
+    .card .thumb { width: 100%; height: auto; max-height: 200px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto; }
+  }
 </style>
 </head>
 <body>
-<div id="accessOverlay" style="display:none;position:fixed;inset:0;background:#f5f5f7;z-index:99">
-  <div style="max-width:360px;margin:140px auto;text-align:center;padding:0 16px">
-    <h3 style="font-size:20px">此服务需要访问码</h3>
-    <p style="font-size:13px;color:#666">请输入管理员提供的访问码后使用</p>
-    <input id="accessInput" type="password" placeholder="访问码" style="padding:8px;width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:8px;font-size:15px">
-    <button onclick="submitAccess()" style="margin-top:12px;width:100%">进入</button>
-    <div id="accessError" style="color:#d00;font-size:12px;margin-top:8px"></div>
+<div id="accessOverlay">
+  <div class="modal">
+    <div class="card-box">
+      <h3>此服务需要访问码</h3>
+      <p>请输入管理员提供的访问码后使用</p>
+      <input id="accessInput" type="password" placeholder="访问码">
+      <button class="btn btn-primary" onclick="submitAccess()">进入</button>
+      <div id="accessError" class="error" style="margin-top:10px"></div>
+    </div>
   </div>
 </div>
-<h1>图片导入苹果日历</h1>
-<details>
-  <summary>API Key 设置（保存一次，以后自动生效）</summary>
-  <div id="adminRow" style="display:none">
-    <p style="font-size:13px;color:#666">此服务由管理员密码保护，输入管理员密码后才能查看和修改设置</p>
-    <input id="adminInput" type="password" placeholder="管理员密码" style="padding:6px;width:60%">
-    <button type="button" onclick="unlockAdmin()" style="padding:6px 12px;font-size:13px">解锁设置</button>
-    <span id="adminError" style="font-size:12px;color:#d00"></span>
+
+<header>
+  <div class="nav">
+    <a class="nav-logo" href="/">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+        <path d="M8 2v4M16 2v4M3 9h18"></path>
+        <path d="M9 15l2 2 4-4"></path>
+      </svg>
+      Image2Cal
+    </a>
+    <span class="badge"><span>Poster → Calendar</span></span>
   </div>
-  <div id="settingsBody">
-  <p style="font-size:13px;color:#666">
-    OCR key（必填）：<a href="https://ocr.space/ocrapi#freeapi" target="_blank">ocr.space/ocrapi</a> 免费注册（25,000 次/月）。<br>
-    Gemini key（选填）：<a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> 免费获取（1500 次/天）。用于复杂海报的智能解析，不填则只用规则解析。
-  </p>
-  <label style="font-size:13px;display:block;margin-bottom:6px">OCR.space Key
-    <input id="keyInput" placeholder="粘贴 OCR.space API Key" style="padding:6px;width:100%;box-sizing:border-box">
-  </label>
-  <label style="font-size:13px;display:block;margin-bottom:6px">Gemini Key（可选）
-    <input id="llmKeyInput" placeholder="粘贴 Gemini API Key" style="padding:6px;width:100%;box-sizing:border-box">
-  </label>
-  <label style="font-size:13px;display:block;margin-bottom:6px">访问模式
-    <select id="modeSelect" style="padding:6px;width:100%;box-sizing:border-box">
-      <option value="private">私密（仅限知道访问码的人）</option>
-      <option value="public">公开（任何人可直接使用）</option>
-    </select>
-  </label>
-  <label style="font-size:13px;display:block;margin-bottom:6px">访问码（私密模式下访客需要输入；至少 8 位，含字母和数字）
-    <input id="accessCodeInput" placeholder="如 Image2Cal#2026" style="padding:6px;width:100%;box-sizing:border-box">
-  </label>
-  <button id="keySave" type="button" onclick="saveKey()" style="padding:6px 12px;font-size:13px">保存</button>
-  <span id="keyStatus" style="font-size:12px;color:#666"></span>
+</header>
+
+<main>
+  <section class="hero container">
+    <div>
+      <p class="hero-label">图片导入苹果日历 · 免费 OCR</p>
+      <h1 class="hero-title">让海报上的活动<br><em>一键进入</em>你的日历</h1>
+      <p class="hero-desc">上传活动海报、聊天截图或预约排班表，自动识别标题、日期、时间、地点。规则解析优先，复杂海报由 AI 智能兜底，支持批量多事件。</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="document.getElementById('drop').scrollIntoView({behavior:'smooth'})">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+          开始上传
+        </button>
+        <button class="btn btn-secondary" onclick="document.querySelector('.settings summary').click()">API Key 设置</button>
+      </div>
+    </div>
+    <div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+          <span class="title">image2cal — upload</span>
+        </div>
+        <div id="drop">
+          <span class="prompt">$ </span>点击或拖拽图片到这里<br>
+          <small>支持多张 · JPG/PNG · 自动压缩 ≤1MB</small>
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+        <div id="status"></div>
+        <div id="actions" style="display:none">
+          <button id="generate" class="btn btn-primary" onclick="generateIcs()" disabled>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+            生成日历文件
+          </button>
+          <a id="mobileImport" class="btn btn-green" href="/api/ics" style="display:none;margin-top:10px">在 iPhone 上导入到日历</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <div class="section-head">
+        <span class="badge"><span>How it works</span></span>
+        <h2>三步完成，无需手动录入</h2>
+        <p>OCR 识别 → 智能解析 → 一键导入，全部自动化。</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <svg width="56" height="56" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <circle cx="36" cy="36" r="4" stroke-width="1.2"></circle>
+            <ellipse cx="36" cy="36" rx="25" ry="11" opacity="0.7" transform="rotate(90 36 36)"></ellipse>
+            <ellipse cx="36" cy="36" rx="25" ry="11" opacity="0.7" transform="rotate(30 36 36)"></ellipse>
+            <ellipse cx="36" cy="36" rx="25" ry="11" opacity="0.7" transform="rotate(150 36 36)"></ellipse>
+          </svg>
+          <h3>自动 OCR 识别</h3>
+          <p>中英文混合自动识别，海报、截图、排班表均可。图片自动压缩，免费额度充足。</p>
+        </div>
+        <div class="feature-card">
+          <svg width="56" height="56" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <circle cx="36" cy="36" r="17" stroke-dasharray="2 2.5" opacity="0.5"></circle>
+            <circle cx="36" cy="36" r="26" opacity="0.7"></circle>
+            <circle cx="36" cy="36" r="4.5"></circle>
+            <circle cx="36" cy="10" r="2.6" fill="currentColor" stroke="none"></circle>
+            <circle cx="58.5" cy="23" r="2.6" fill="currentColor" stroke="none"></circle>
+            <circle cx="58.5" cy="49" r="2.6" fill="currentColor" stroke="none"></circle>
+            <circle cx="36" cy="62" r="2.6" fill="currentColor" stroke="none"></circle>
+            <circle cx="13.5" cy="49" r="2.6" fill="currentColor" stroke="none"></circle>
+            <circle cx="13.5" cy="23" r="2.6" fill="currentColor" stroke="none"></circle>
+          </svg>
+          <h3>规则 + AI 智能解析</h3>
+          <p>规整排班表由规则引擎零成本解析；花哨海报自动交给 Gemini 兜底，识别来源清晰标注。</p>
+        </div>
+        <div class="feature-card">
+          <svg width="56" height="56" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="13" y="17" width="46" height="46" rx="8"></rect>
+            <path d="M19 30h34"></path>
+            <path d="M28 46l5 5 10-12"></path>
+          </svg>
+          <h3>一键导入苹果日历</h3>
+          <p>生成 .ics 后在 iPhone 上点开即可选日历添加，任意浏览器均可，云端部署随时可用。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cardsSection" class="container" style="display:none">
+    <h2>识别结果 <span class="mono badge-blue">// 确认后生成</span></h2>
+    <div id="cards"></div>
+  </section>
+
+  <section class="settings">
+    <div class="container">
+      <details>
+        <summary>API Key 设置</summary>
+        <div id="adminRow" style="display:none">
+          <p class="hint">此服务由管理员密码保护，输入管理员密码后才能查看和修改设置</p>
+          <label>管理员密码
+            <input id="adminInput" type="password" placeholder="管理员密码">
+          </label>
+          <button class="btn btn-secondary" type="button" onclick="unlockAdmin()" style="padding:8px 16px;font-size:13px">解锁设置</button>
+          <span id="adminError" class="error" style="margin-left:10px"></span>
+        </div>
+        <div id="settingsBody">
+          <p class="hint">
+            OCR key（必填）：<a href="https://ocr.space/ocrapi#freeapi" target="_blank" rel="noopener">ocr.space/ocrapi</a> 免费注册（25,000 次/月）。<br>
+            Gemini key（选填）：<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> 免费获取（1,500 次/天），用于复杂海报智能解析。
+          </p>
+          <label>OCR.space Key
+            <input id="keyInput" placeholder="粘贴 OCR.space API Key">
+          </label>
+          <label>Gemini Key（可选）
+            <input id="llmKeyInput" placeholder="粘贴 Gemini API Key">
+          </label>
+          <label>访问模式
+            <select id="modeSelect">
+              <option value="private">私密（仅限知道访问码的人）</option>
+              <option value="public">公开（任何人可直接使用）</option>
+            </select>
+          </label>
+          <label>访问码（私密模式下访客需要输入；至少 8 位，含字母和数字）
+            <input id="accessCodeInput" placeholder="如 Image2Cal#2026">
+          </label>
+          <button id="keySave" class="btn btn-primary" type="button" onclick="saveKey()" style="padding:8px 20px;font-size:13px">保存</button>
+          <span id="keyStatus" style="font-size:12px;color:var(--ds-muted);margin-left:10px"></span>
+        </div>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    Image2Cal · 图片导入苹果日历 · 规则解析 + Gemini 智能兜底<br>
+    手机导入：生成后在 iPhone 点开 .ics 文件 → 选择日历 → 添加全部
   </div>
-</details>
-<div id="drop">点击或拖拽图片到这里<br><small>支持多张，JPG/PNG，自动压缩</small></div>
-<input type="file" id="fileInput" multiple accept="image/*" style="display:none">
-<div id="cards"></div>
-<div id="actions" style="display:none">
-  <button id="generate" onclick="generateIcs()" disabled>生成日历文件</button>
-  <a id="mobileImport" href="/api/ics" style="display:none;margin-left:10px;background:#34c759;color:#fff;text-decoration:none;border-radius:8px;padding:10px 22px;font-size:15px">在 iPhone 上导入到日历</a>
-</div>
-<div id="status"></div>
-<details>
-  <summary>手机导入步骤</summary>
-  <ol style="font-size:13px">
-    <li>在电脑上点击「生成日历文件」下载 events.ics</li>
-    <li>用 AirDrop 或微信发送到 iPhone</li>
-    <li>在 iPhone 上点开 events.ics → 「添加全部」→ 已加入苹果日历</li>
-  </ol>
-</details>
+</footer>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

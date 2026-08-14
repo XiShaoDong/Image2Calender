@@ -160,6 +160,7 @@ function renderCards() {
     });
   });
   actionsEl.style.display = 'block';
+  document.getElementById('cardsSection').style.display = 'block';
   updateGenerateState();
 }
 
