@@ -1,6 +1,8 @@
+import hmac
 from datetime import datetime
 import json
 from pathlib import Path
+import re
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
@@ -48,7 +50,19 @@ def _access_ok(request: Request) -> bool:
     if get_public_mode(DEFAULT_CONFIG) or not code:
         return True
     supplied = request.headers.get("x-access-code") or request.query_params.get("code")
-    return supplied == code
+    if not supplied:
+        return False
+    return hmac.compare_digest(supplied, code)
+
+
+def _validate_access_code(code: str) -> str | None:
+    if len(code) < 8:
+        return "访问码至少 8 位"
+    if not re.search(r"[A-Za-z]", code):
+        return "访问码必须包含字母"
+    if not re.search(r"\d", code):
+        return "访问码必须包含数字"
+    return None
 
 
 def _require_access(request: Request) -> None:
@@ -188,7 +202,13 @@ def api_config_set(request: Request, payload: ConfigPayload):
     if payload.llm_key is not None:
         ok = set_llm_key(payload.llm_key, DEFAULT_CONFIG) and ok
     if payload.access_code is not None:
-        ok = set_access_code(payload.access_code, DEFAULT_CONFIG) and ok
+        if not payload.access_code:
+            ok = set_access_code("", DEFAULT_CONFIG) and ok
+        else:
+            err = _validate_access_code(payload.access_code)
+            if err:
+                raise HTTPException(400, err)
+            ok = set_access_code(payload.access_code, DEFAULT_CONFIG) and ok
     if payload.public_mode is not None:
         ok = set_public_mode(payload.public_mode, DEFAULT_CONFIG) and ok
     return {"ok": ok}

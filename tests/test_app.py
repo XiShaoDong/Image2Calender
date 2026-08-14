@@ -230,3 +230,20 @@ def test_config_saves_public_mode_and_code(tmp_path, monkeypatch):
     cfg = client.get("/api/config").json()
     assert cfg["public_mode"] is True
     assert cfg["access_code_set"] is True
+
+
+def test_weak_access_code_rejected(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
+    client = TestClient(app)
+    assert client.post("/api/config", json={"access_code": "1234"}).status_code == 400
+    assert client.post("/api/config", json={"access_code": "abcdefgh"}).status_code == 400
+    assert client.post("/api/config", json={"access_code": "Image2Cal#2026"}).status_code == 200
+
+
+def test_access_code_can_be_cleared(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.DEFAULT_CONFIG", tmp_path / "c.json")
+    client = TestClient(app)
+    client.post("/api/config", json={"access_code": "Image2Cal#2026"})
+    client.post("/api/config", json={"access_code": ""})
+    cfg = client.get("/api/config").json()
+    assert cfg["access_code_set"] is False

@@ -213,10 +213,11 @@ async function saveKey() {
     body: JSON.stringify(body),
   });
   let saved = false;
-  try { saved = (await resp.json()).ok; } catch (e) {}
+  let detail = '';
+  try { const data = await resp.json(); saved = data.ok; detail = data.detail || ''; } catch (e) {}
   document.getElementById('keyStatus').textContent = saved
     ? '已保存，以后自动生效'
-    : '保存失败（云端部署请用环境变量配置 Key）';
+    : (detail || '保存失败（云端部署请用环境变量配置 Key）');
 }
 
 async function loadKeys() {
